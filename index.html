@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Barış Akademi - V49 (Renkli & Numaralı)</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; overflow: hidden; }
+        .brand { font-family: 'Fredoka', sans-serif; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .loader { border: 4px solid #e2e8f0; border-top: 4px solid #6366f1; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .anim-fade { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Renkli vurgular */
+        .readable-text strong { color: #4f46e5; font-weight: 800; }
+        .readable-text em { background-color: #fef08a; color: #854d0e; font-style: normal; padding: 0 4px; border-radius: 4px; font-weight: 600; }
+        .readable-text ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .readable-text h3 { color: #1e293b; font-size: 1.25rem; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.25rem; }
+        
+        /* Kart Stili */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- TAM LİSTE MÜFREDAT (NUMARALI) ---
+        const CURRICULUM = {
+            OABT_ALAN: {
+                title: "ÖABT Okul Öncesi Alan Bilgisi",
+                color: "rose", // Kırmızı/Pembe Tema
+                units: [
+                    {
+                        id: 1, title: "Erken Çocukluk Eğitimine Giriş", 
+                        topics: ["1.1. EÇE Tanımı, Amacı ve İlkeleri", "1.2. Tarihsel Süreç ve Düşünürler", "1.3. Türkiye'de Okul Öncesi Eğitim", "1.4. Kuramlar ve Yaklaşımlar"]
+                    },
+                    {
+                        id: 2, title: "Çocuk Sağlığı ve İlkyardım", 
+                        topics: ["2.1. Sağlık Ölçütleri ve Büyüme", "2.2. Anne ve Çocuk Sağlığı", "2.3. Temel İlkyardım Uygulamaları", "2.4. Çocuk Hastalıkları ve Aşılar"]
+                    },
+                    {
+                        id: 3, title: "Erken Çocuklukta Gelişim", 
+                        topics: ["3.1. Fiziksel ve Motor Gelişim", "3.2. Bilişsel Gelişim", "3.3. Dil Gelişimi", "3.4. Sosyal ve Duygusal Gelişim", "3.5. Kişilik ve Ahlak Gelişimi", "3.6. Cinsel Gelişim"]
+                    },
+                    {
+                        id: 4, title: "Çocuk Ruh Sağlığı", 
+                        topics: ["4.1. Ruh Sağlığı Tanımı ve Kuramlar", "4.2. Bağlanma ve Uyum Problemleri", "4.3. Davranış ve Alışkanlık Bozuklukları", "4.4. Özel Gereksinimli Çocuklar"]
+                    },
+                    {
+                        id: 5, title: "Erken Çocukluk Dönemi Edebiyatı", 
+                        topics: ["5.1. Çocuk Edebiyatı Tanımı ve Önemi", "5.2. Edebi Türler (Masal, Hikaye vb.)", "5.3. Kitap Seçimi ve Nitelikleri"]
+                    },
+                    {
+                        id: 6, title: "Anne-Baba Eğitimi", 
+                        topics: ["6.1. Aile Eğitimi Modelleri", "6.2. Aile Katılımı Çalışmaları", "6.3. Anne-Baba Tutumları"]
+                    },
+                    {
+                        id: 7, title: "Çocuk Hakları", 
+                        topics: ["7.1. Çocuk Hakları Sözleşmesi", "7.2. Çocuk Hukuku ve Koruma", "7.3. İhmal ve İstismar"]
+                    }
+                ]
+            },
+            OABT_EGITIM: {
+                title: "ÖABT Okul Öncesi Alan Eğitimi",
+                color: "amber", // Turuncu/Sarı Tema
+                units: [
+                    {
+                        id: 1, title: "Alan Eğitimi Temelleri", 
+                        topics: ["1.1. Okul Öncesinde Fen Eğitimi", "1.2. Okul Öncesinde Matematik Eğitimi", "1.3. Okul Öncesinde Görsel Sanatlar", "1.4. Okul Öncesinde Müzik Eğitimi"]
+                    },
+                    {
+                        id: 2, title: "Oyun ve Drama", 
+                        topics: ["2.1. Oyun Gelişimi ve Kuramları", "2.2. Yaratıcı Drama Aşamaları ve Teknikleri"]
+                    },
+                    {
+                        id: 3, title: "Program ve Planlama", 
+                        topics: ["3.1. Okula Uyum ve Erken Okuryazarlık", "3.2. Öğrenme Yaklaşımları ve Programlar", "3.3. Materyal Geliştirme"]
+                    }
+                ]
+            },
+            AGS: {
+                title: "Akademi Giriş Sınavı (AGS)",
+                color: "sky", // Mavi Tema
+                units: [
+                    {
+                        id: 1, title: "Sözel Yetenek", 
+                        topics: ["1.1. Sözcükte Anlam", "1.2. Cümlede Anlam", "1.3. Paragrafta Anlam", "1.4. Sözel Mantık"]
+                    },
+                    {
+                        id: 2, title: "Sayısal Yetenek", 
+                        topics: ["2.1. Temel Matematik", "2.2. Problemler", "2.3. Sayısal Mantık", "2.4. Grafik ve Tablo Yorumlama"]
+                    },
+                    {
+                        id: 3, title: "Tarih", 
+                        topics: ["3.1. İslamiyet Öncesi Türk Tarihi", "3.2. Türk-İslam Tarihi", "3.3. Osmanlı Tarihi", "3.4. İnkılap Tarihi", "3.5. Çağdaş Türk ve Dünya Tarihi"]
+                    },
+                    {
+                        id: 4, title: "Coğrafya", 
+                        topics: ["4.1. Türkiye Fiziki Coğrafyası", "4.2. Türkiye Beşeri Coğrafyası", "4.3. Türkiye Ekonomik Coğrafyası"]
+                    },
+                    {
+                        id: 5, title: "Eğitim Bilimleri", 
+                        topics: ["5.1. Gelişim Psikolojisi", "5.2. Öğrenme Psikolojisi", "5.3. Öğretim Yöntem ve Teknikleri", "5.4. Ölçme ve Değerlendirme", "5.5. Program Geliştirme", "5.6. Rehberlik"]
+                    },
+                    {
+                        id: 6, title: "Mevzuat", 
+                        topics: ["6.1. Temel Hukuk ve Anayasa", "6.2. 1739 Sayılı Milli Eğitim Temel Kanunu", "6.3. 222 Sayılı İlköğretim Kanunu", "6.4. Öğretmenlik Mesleği Kanunu"]
+                    }
+                ]
+            }
+        };
+
+        const INSTRUCTORS = {
+            'Tarih': ['Ramazan Yetgin', 'Aydın Yüce', 'Mehmet Celal Özyıldız'],
+            'Coğrafya': ['Bayram Meral', 'Engin Eraydın'],
+            'Vatandaşlık': ['Emrah Vahap Özkaraca'],
+            'Matematik': ['İlyas Güneş'],
+            'Eğitim': ['Metin Şar', 'Bülent Tanık', 'Cüneyt İltuş', 'Fatih Genç'],
+            'ÖABT': ['Hilal Hoca', 'Okul Öncesi ÖABT TV', 'Sultan Hoca', 'Murat Sakin']
+        };
+
+        const Icon = ({ name, size=20, className="" }) => {
+            useEffect(() => { if(window.lucide) window.lucide.createIcons(); });
+            return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
+        };
+
+        const callGoogle = async (apiKey, modelName, prompt, type = 'json') => {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            try {
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message);
+                let text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!text) throw new Error("Cevap boş.");
+                if (type === 'html') return text;
+                text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                const s = text.indexOf('['); const e = text.lastIndexOf(']');
+                if (s !== -1 && e !== -1) text = text.substring(s, e+1);
+                return JSON.parse(text);
+            } catch (e) { console.error(e); throw e; }
+        };
+
+        // --- COMPONENTS ---
+
+        const Dashboard = ({ apiKey, setApiKey, changeView, daysLeft, openNotebook }) => {
+            const [keyInput, setKeyInput] = useState(apiKey || "");
+            const saveKey = () => { 
+                if(!keyInput.trim()) return alert("Lütfen anahtarı kutuya yapıştır!");
+                localStorage.setItem("baris_key", keyInput.trim()); 
+                setApiKey(keyInput.trim()); 
+                alert("Anahtar Kaydedildi! 🚀"); 
+            };
+
+            return (
+                <div className="h-full overflow-y-auto p-6 flex flex-col items-center max-w-5xl mx-auto anim-fade">
+                    <div className="text-center mb-8 mt-4">
+                        <div className="bg-indigo-100 text-indigo-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm"><Icon name="crown" size={32}/></div>
+                        <h1 className="text-5xl font-black text-slate-800 brand tracking-tighter">BARIŞ AKADEMİ</h1>
+                        <p className="text-indigo-600 font-bold text-lg tracking-widest uppercase opacity-80">2026 Efsane Sürüm</p>
+                    </div>
+
+                    <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                        {/* SAYAÇ */}
+                        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2rem] p-8 text-white shadow-xl relative overflow-hidden flex flex-col justify-between h-48">
+                            <div>
+                                <div className="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-2">Sınava Kalan Süre</div>
+                                <div className="text-7xl font-black brand">{daysLeft}</div>
+                                <div className="text-indigo-100 font-bold mt-1">GÜN KALDI</div>
+                            </div>
+                            <Icon name="calendar-clock" size={140} className="absolute -right-8 -bottom-8 opacity-10 rotate-12"/>
+                        </div>
+                        
+                        {/* ANAHTAR GİRİŞİ (BURASI ARTIK ÇOK NET) */}
+                        <div className={`rounded-[2rem] p-8 shadow-xl border flex flex-col justify-center h-48 relative overflow-hidden ${!apiKey ? 'bg-orange-50 border-orange-200' : 'bg-white border-slate-100'}`}>
+                            {!apiKey ? (
+                                <div className="z-10">
+                                    <div className="flex items-center gap-2 text-orange-600 font-black text-xl mb-3"><Icon name="key"/> ANAHTAR GİRİŞİ</div>
+                                    <p className="text-orange-800/70 text-sm mb-4 font-medium">Sistemi kullanmak için Google API anahtarını buraya yapıştır.</p>
+                                    <div className="flex gap-2">
+                                        <input value={keyInput} onChange={e=>setKeyInput(e.target.value)} className="flex-1 p-3 bg-white border-2 border-orange-200 rounded-xl font-mono text-sm outline-none focus:border-orange-500 transition shadow-inner" placeholder="AIzaSy..."/>
+                                        <button onClick={saveKey} className="bg-orange-500 text-white px-5 rounded-xl font-bold shadow-md hover:bg-orange-600 active:scale-95 transition">KAYDET</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center z-10">
+                                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 animate-pulse"><Icon name="check" size={32}/></div>
+                                    <div className="font-bold text-emerald-600 text-xl">Sistem Aktif & Hazır</div>
+                                    <button onClick={()=>setApiKey("")} className="text-xs text-slate-400 font-bold hover:text-red-500 underline mt-2">Anahtarı Değiştir</button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                        <button onClick={()=>changeView('syllabus')} className="bg-white p-6 rounded-3xl shadow-lg border-2 border-transparent hover:border-indigo-500 hover:shadow-indigo-100 transition group flex flex-col items-center gap-3">
+                            <div className="bg-indigo-100 text-indigo-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="book-open-check" size={32}/></div>
+                            <span className="font-bold text-slate-700 text-lg">Ders & Müfredat</span>
+                        </button>
+                        <button onClick={()=>changeView('trial_setup')} className="bg-white p-6 rounded-3xl shadow-lg border-2 border-transparent hover:border-emerald-500 hover:shadow-emerald-100 transition group flex flex-col items-center gap-3">
+                            <div className="bg-emerald-100 text-emerald-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="file-badge" size={32}/></div>
+                            <span className="font-bold text-slate-700 text-lg">Deneme Ol</span>
+                        </button>
+                        <button onClick={openNotebook} className="bg-white p-6 rounded-3xl shadow-lg border-2 border-transparent hover:border-amber-500 hover:shadow-amber-100 transition group flex flex-col items-center gap-3">
+                            <div className="bg-amber-100 text-amber-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="notebook-pen" size={32}/></div>
+                            <span className="font-bold text-slate-700 text-lg">Akıllı Defter</span>
+                        </button>
+                        <button onClick={()=>changeView('errors')} className="bg-white p-6 rounded-3xl shadow-lg border-2 border-transparent hover:border-red-500 hover:shadow-red-100 transition group flex flex-col items-center gap-3">
+                            <div className="bg-red-100 text-red-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="alert-triangle" size={32}/></div>
+                            <span className="font-bold text-slate-700 text-lg">Hata Defteri</span>
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const Syllabus = ({ apiKey, modelName, goBack, onAction }) => {
+            const [tab, setTab] = useState('OABT_ALAN');
+            
+            const colors = {
+                'rose': 'bg-rose-600 text-white', 'rose-light': 'bg-rose-50 text-rose-700 border-rose-100',
+                'amber': 'bg-amber-500 text-white', 'amber-light': 'bg-amber-50 text-amber-700 border-amber-100',
+                'sky': 'bg-sky-600 text-white', 'sky-light': 'bg-sky-50 text-sky-700 border-sky-100'
+            };
+
+            const activeColor = CURRICULUM[tab].color;
+
+            return (
+                <div className="h-full flex flex-col bg-slate-50 anim-fade">
+                    <div className="bg-white p-4 border-b flex items-center gap-4 shadow-sm z-10">
+                        <button onClick={goBack} className="bg-slate-100 p-2 rounded-xl hover:bg-slate-200"><Icon name="arrow-left"/></button>
+                        <h2 className="font-bold text-xl text-slate-800">Müfredat & Çalışma</h2>
+                    </div>
+                    
+                    {/* Sekmeler */}
+                    <div className="p-4 flex gap-3 overflow-x-auto hide-scroll sticky top-0 z-10 bg-slate-50/95 backdrop-blur">
+                        {Object.keys(CURRICULUM).map(k=>(
+                            <button key={k} onClick={()=>setTab(k)} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition shadow-sm border-2 ${tab===k ? `border-${CURRICULUM[k].color}-500 bg-${CURRICULUM[k].color}-50 text-${CURRICULUM[k].color}-700` : 'bg-white text-slate-500 border-slate-200'}`}>
+                                {CURRICULUM[k].title}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-24">
+                        <div className={`p-4 rounded-2xl mb-4 font-bold text-center text-white shadow-md bg-gradient-to-r ${activeColor==='rose'?'from-rose-500 to-pink-600':activeColor==='amber'?'from-amber-500 to-orange-600':'from-sky-500 to-blue-600'}`}>
+                            {CURRICULUM[tab].title} - Konu Listesi
+                        </div>
+
+                        {CURRICULUM[tab].units.map((unit)=>(
+                            <div key={unit.id} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                                <div className={`p-5 font-bold border-b text-lg flex items-center gap-3 ${activeColor==='rose'?'bg-rose-50 text-rose-800':activeColor==='amber'?'bg-amber-50 text-amber-800':'bg-sky-50 text-sky-800'}`}>
+                                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm text-white ${activeColor==='rose'?'bg-rose-500':activeColor==='amber'?'bg-amber-500':'bg-sky-500'}`}>{unit.id}</span>
+                                    {unit.title}
+                                </div>
+                                <div className="divide-y divide-slate-50">
+                                    {unit.topics.map((t, idx)=>(
+                                        <div key={idx} className="p-5 hover:bg-slate-50 transition group">
+                                            <div className="font-bold text-slate-700 mb-4 text-lg flex items-center gap-2">
+                                                <span className="text-slate-400 text-sm font-mono">{t.split('.')[0] + '.' + t.split('.')[1]}</span>
+                                                {t.split('.').slice(2).join('.')}
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 opacity-80 group-hover:opacity-100 transition">
+                                                <button onClick={()=>onAction('hap',t)} className="bg-white border-2 border-amber-200 text-amber-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-amber-500 hover:text-white transition"><Icon name="pill" size={18}/> HAP</button>
+                                                <button onClick={()=>onAction('ozet',t)} className="bg-white border-2 border-blue-200 text-blue-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-500 hover:text-white transition"><Icon name="file-text" size={18}/> ÖZET</button>
+                                                <button onClick={()=>onAction('card',t)} className="bg-white border-2 border-purple-200 text-purple-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-purple-500 hover:text-white transition"><Icon name="layers" size={18}/> KART</button>
+                                                <button onClick={()=>onAction('test',t)} className="bg-white border-2 border-emerald-200 text-emerald-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-500 hover:text-white transition"><Icon name="check-circle" size={18}/> SORU</button>
+                                                <button onClick={()=>onAction('video',t)} className="col-span-2 md:col-span-4 bg-red-50 text-red-600 py-2 rounded-xl text-sm font-bold border border-red-200 flex items-center justify-center gap-2 hover:bg-red-500 hover:text-white transition"><Icon name="youtube" size={16}/> Konu Anlatım Videoları</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // ... (SmartNotebook, InfoModal, TeacherSelect, TrialSetup, Quiz, Flashcards - V47/48 ile aynı, sadece App'e entegre)
+        
+        const SmartNotebook = ({ apiKey, modelName, close }) => {
+            const [notes, setNotes] = useState(localStorage.getItem('baris_notebook') || "");
+            const [processing, setProcessing] = useState(false);
+            const [quizFromNotes, setQuizFromNotes] = useState(null);
+            const handleSave = (val) => { setNotes(val); localStorage.setItem('baris_notebook', val); };
+            const polish = async () => { if(!notes.trim()) return; setProcessing(true); try { const res = await callGoogle(apiKey, modelName, `Düzelt:\n${notes}`, 'html'); handleSave(res.replace(/<[^>]*>?/gm, '')); alert("Düzenlendi!"); } catch(e){} finally { setProcessing(false); } };
+            const genQuiz = async () => { if(!notes.trim()) return; setProcessing(true); try { const res = await callGoogle(apiKey, modelName, `5 soru. JSON Array.\n${notes}`, 'json'); setQuizFromNotes(res); } catch(e){} finally { setProcessing(false); } };
+            if(quizFromNotes) return <div className="fixed inset-0 z-[90] bg-white"><Quiz questions={quizFromNotes} goBack={()=>setQuizFromNotes(null)} addToErrors={()=>{}} isNotebook={true}/></div>;
+            return <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm anim-fade" onClick={close}><div className="bg-white w-full max-w-3xl h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()}><div className="p-4 bg-amber-400 text-amber-950 font-bold flex justify-between items-center"><span className="flex items-center gap-2"><Icon name="edit-3"/> Not Defterim</span><button onClick={close}><Icon name="x"/></button></div><textarea value={notes} onChange={e=>handleSave(e.target.value)} className="flex-1 p-6 bg-amber-50 resize-none outline-none text-lg text-slate-700 leading-relaxed font-medium" placeholder="Buraya yaz..."></textarea><div className="p-3 bg-white border-t flex gap-2"><button onClick={polish} disabled={processing} className="flex-1 bg-indigo-100 text-indigo-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Icon name="wand-2"/> Düzenle</button><button onClick={genQuiz} disabled={processing} className="flex-1 bg-emerald-100 text-emerald-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Icon name="brain-circuit"/> Soru Üret</button></div></div></div>;
+        };
+
+        const InfoModal = ({ data, close }) => (
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm anim-fade" onClick={close}>
+                <div className="bg-white w-full max-w-2xl max-h-[85vh] rounded-3xl p-8 shadow-2xl overflow-y-auto relative" onClick={e=>e.stopPropagation()}>
+                    <button onClick={close} className="absolute top-4 right-4 bg-slate-100 p-2 rounded-full hover:bg-slate-200"><Icon name="x"/></button>
+                    <h2 className="text-2xl font-black mb-6 text-indigo-700 border-b pb-2">{data.title}</h2>
+                    <div className="prose prose-lg prose-slate readable-text" dangerouslySetInnerHTML={{__html: data.content}}></div>
+                </div>
+            </div>
+        );
+
+        const TeacherSelectModal = ({ topic, close }) => {
+            const cat = topic.includes('Tarih')?'Tarih':topic.includes('Coğrafya')?'Coğrafya':topic.includes('Vatandaşlık')?'Vatandaşlık':topic.includes('Matematik')?'Matematik':topic.includes('Gelişim')||topic.includes('Öğrenme')||topic.includes('Rehberlik')?'Eğitim':'ÖABT';
+            return (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm anim-fade" onClick={close}>
+                    <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl" onClick={e=>e.stopPropagation()}>
+                        <h3 className="font-bold text-xl mb-4 text-red-600 flex items-center gap-2"><Icon name="youtube"/> Hoca Seç</h3>
+                        <div className="space-y-2">
+                            {INSTRUCTORS[cat]?.map(h=><button key={h} onClick={()=>window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(h+" "+topic)}`,'_blank')} className="w-full p-4 bg-slate-50 hover:bg-red-50 text-left rounded-xl font-bold text-slate-700 hover:text-red-600 transition border border-slate-100">{h}</button>)}
+                            <button onClick={()=>window.open(`https://www.youtube.com/results?search_query=KPSS+${encodeURIComponent(topic)}`,'_blank')} className="w-full p-4 border-2 border-dashed border-slate-300 text-slate-400 font-bold rounded-xl">Genel Arama</button>
+                        </div>
+                        <button onClick={close} className="w-full mt-6 bg-slate-100 py-3 rounded-xl font-bold text-slate-500">Kapat</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const TrialSetup = ({ goBack, startTrial }) => {
+            const [config, setConfig] = useState({ type: 'OABT', count: 20 });
+            return (
+                <div className="h-full flex flex-col justify-center p-6 bg-slate-50 anim-fade">
+                    <button onClick={goBack} className="absolute top-6 left-6 bg-white p-3 rounded-full shadow"><Icon name="arrow-left"/></button>
+                    <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl max-w-lg mx-auto w-full border border-slate-100">
+                        <div className="text-center mb-8"><h2 className="text-3xl font-black text-slate-800">Deneme Oluştur</h2></div>
+                        <div className="space-y-3 mb-8">{[{id:'OABT', l:'ÖABT Alan'}, {id:'AGS', l:'AGS Genel'}, {id:'EGITIM', l:'Eğitim Bil.'}].map(opt=><button key={opt.id} onClick={()=>setConfig({...config, type:opt.id})} className={`w-full p-5 rounded-2xl text-left font-bold transition border-2 ${config.type===opt.id ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-100 text-slate-500'}`}>{opt.l}</button>)}</div>
+                        <div className="flex justify-between gap-3 mb-8">{[10, 20, 30, 50].map(n=><button key={n} onClick={()=>setConfig({...config, count:n})} className={`flex-1 py-4 rounded-xl font-bold transition ${config.count===n?'bg-emerald-500 text-white shadow-lg':'bg-slate-100 text-slate-400'}`}>{n}</button>)}</div>
+                        <button onClick={()=>startTrial(config)} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-bold text-xl shadow-xl hover:bg-indigo-700 transition active:scale-95">BAŞLAT</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const Quiz = ({ questions, goBack, addToErrors, isNotebook }) => {
+            const [idx, setIdx] = useState(0);
+            const [show, setShow] = useState(false);
+            const [score, setScore] = useState(0);
+            const q = questions[idx];
+            const handleAns = (i) => { if(show) return; setShow(true); if(i===q.ans) setScore(score+1); else addToErrors({q:q.q, w:q.opts[i], r:q.opts[q.ans], e:q.exp, t: isNotebook?"Defter":"Deneme"}); };
+            return (
+                <div className="h-full flex flex-col bg-slate-50 p-6 anim-fade">
+                    <div className="flex justify-between items-center mb-6"><button onClick={goBack} className="text-slate-400 font-bold">Çıkış</button><div className="bg-white px-4 py-2 rounded-full font-bold shadow-sm text-indigo-600">{idx+1}/{questions.length}</div></div>
+                    <div className="flex-1 overflow-y-auto"><div className="bg-white p-8 rounded-3xl shadow-md border border-slate-100 mb-6"><p className="font-bold text-xl text-slate-800 leading-relaxed">{q.q}</p></div><div className="space-y-4">{q.opts.map((o,i)=><button key={i} onClick={()=>handleAns(i)} disabled={show} className={`w-full text-left p-5 rounded-2xl border-2 font-medium text-lg transition ${show?(i===q.ans?'border-emerald-500 bg-emerald-50 text-emerald-800':i!==q.ans&&'opacity-50'):'border-white bg-white hover:border-indigo-200'}`}>{o}</button>)}</div>{show && <div className="mt-8 p-6 bg-indigo-50 border border-indigo-100 rounded-3xl text-indigo-900 font-medium">{q.exp}</div>}</div>
+                    {show && <button onClick={()=>{if(idx<questions.length-1){setIdx(idx+1);setShow(false)}else{alert(`Sınav Bitti! Puan: ${score}`);goBack()}}} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold mt-4 shadow-lg text-lg">İleri</button>}
+                </div>
+            );
+        };
+
+        const Flashcards = ({ cards, goBack }) => {
+            const [idx, setIdx] = useState(0);
+            const [flipped, setFlipped] = useState(false);
+            return (
+                <div className="h-full flex flex-col bg-slate-100 p-6 anim-fade">
+                    <div className="flex justify-between items-center mb-8"><button onClick={goBack} className="p-3 bg-white rounded-full shadow"><Icon name="x"/></button><span className="font-bold text-indigo-600 bg-white px-4 py-2 rounded-full shadow">{idx+1}/{cards.length}</span></div>
+                    <div className="flex-1 w-full max-w-md mx-auto perspective-1000 mb-8" onClick={()=>setFlipped(!flipped)}><div className={`relative w-full h-full transition-transform duration-700 transform-style-3d cursor-pointer ${flipped?'rotate-y-180':''}`}><div className="absolute w-full h-full backface-hidden bg-white rounded-[2rem] shadow-2xl flex flex-col items-center justify-center p-10 border-b-8 border-indigo-500"><span className="text-xs font-black text-slate-300 uppercase tracking-widest mb-6">SORU</span><div className="text-3xl font-bold text-center text-slate-800">{cards[idx].front}</div></div><div className="absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-[2rem] shadow-2xl flex flex-col items-center justify-center p-10"><span className="text-xs font-black text-indigo-200 uppercase tracking-widest mb-6">CEVAP</span><div className="text-2xl font-medium text-center leading-relaxed">{cards[idx].back}</div></div></div></div>
+                    <div className="flex gap-4 max-w-md mx-auto w-full"><button onClick={()=>{setIdx(Math.max(0,idx-1));setFlipped(false)}} disabled={idx===0} className="flex-1 bg-white py-4 rounded-2xl font-bold">Geri</button><button onClick={()=>{setIdx(Math.min(cards.length-1,idx+1));setFlipped(false)}} disabled={idx===cards.length-1} className="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold">İleri</button></div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [view, setView] = useState('dashboard');
+            const [apiKey, setApiKey] = useState(localStorage.getItem('baris_key'));
+            const [loading, setLoading] = useState(false);
+            const [modalData, setModalData] = useState(null); 
+            const [quizData, setQuizData] = useState([]);
+            const [cardData, setCardData] = useState([]);
+            const [errors, setErrors] = useState(JSON.parse(localStorage.getItem('baris_errors')||'[]'));
+            const [notebook, setNotebook] = useState(false);
+
+            // Sayaç: 12 Temmuz 2026
+            const daysLeft = Math.ceil((new Date('2026-07-12') - new Date()) / (1000 * 60 * 60 * 24));
+            useEffect(()=>{localStorage.setItem('baris_errors', JSON.stringify(errors))},[errors]);
+
+            const handleAction = async (type, topic) => {
+                if(!apiKey) return alert("Anahtar giriniz!");
+                if(type==='video') { setModalData({type:'video', topic}); return; }
+                setLoading(true);
+                try {
+                    const prompt = type==='hap' ? `Konu: '${topic}'. KPSS için 5 kritik hap bilgi. HTML <strong>, <em> kullan.`:
+                                   type==='ozet' ? `Konu: '${topic}'. ÖABT detaylı özet. HTML <h3>, <strong> kullan.`:
+                                   type==='card' ? `Konu: '${topic}'. 10 kart. JSON Array.`:
+                                   `Konu: '${topic}'. 10 soru. JSON Array.`;
+                    
+                    const res = await callGoogle(apiKey, "gemini-2.0-flash-exp", prompt + (type==='card'||type==='test'?'': ' HTML formatında ver.'), type==='card'||type==='test'?'json':'html');
+                    
+                    if(type==='hap'||type==='ozet') setModalData({type:'info', title:topic, content:res});
+                    else if(type==='card') { setCardData(res); setView('flashcards'); }
+                    else { setQuizData(res); setView('quiz'); }
+                } catch(e) { alert("Hata."); } finally { setLoading(false); }
+            };
+
+            const startTrial = async (conf) => {
+                if(!apiKey) return alert("Anahtar giriniz!"); setLoading(true);
+                try {
+                    const prompt = `KPSS/ÖABT ${conf.type} için ${conf.count} adet zor deneme sorusu. Format: JSON Array [{"q":"...","opts":["..."],"ans":0,"exp":"..."}]. Sadece JSON.`;
+                    const res = await callGoogle(apiKey, "gemini-2.0-flash-exp", prompt, 'json');
+                    setQuizData(res); setView('quiz');
+                } catch(e) { alert("Hata."); } finally { setLoading(false); }
+            };
+
+            return (
+                <div className="h-screen bg-slate-50 text-slate-800 font-sans select-none">
+                    {loading && <div className="fixed inset-0 z-[100] bg-white/95 flex flex-col items-center justify-center"><div className="loader mb-6"></div><p className="font-bold text-indigo-600 animate-pulse text-xl">Barış Hocam İçin Hazırlanıyor...</p></div>}
+                    
+                    {notebook && <SmartNotebook apiKey={apiKey} modelName="gemini-2.0-flash-exp" close={()=>setNotebook(false)}/>}
+                    {modalData?.type === 'info' && <InfoModal data={modalData} close={()=>setModalData(null)}/>}
+                    {modalData?.type === 'video' && <TeacherSelectModal topic={modalData.topic} close={()=>setModalData(null)}/>}
+
+                    {view === 'dashboard' && <Dashboard apiKey={apiKey} setApiKey={setApiKey} changeView={setView} daysLeft={daysLeft} openNotebook={()=>setNotebook(true)}/>}
+                    {view === 'syllabus' && <Syllabus apiKey={apiKey} modelName="gemini-2.0-flash-exp" goBack={()=>setView('dashboard')} onAction={handleAction}/>}
+                    {view === 'trial_setup' && <TrialSetup goBack={()=>setView('dashboard')} startTrial={startTrial}/>}
+                    {view === 'quiz' && <Quiz questions={quizData} goBack={()=>setView('dashboard')} addToErrors={err=>setErrors([err,...errors])} isNotebook={false}/>}
+                    {view === 'flashcards' && <Flashcards cards={cardData} goBack={()=>setView('syllabus')}/>}
+                    {view === 'errors' && <div className="h-full p-6 flex flex-col max-w-3xl mx-auto"><div className="flex justify-between items-center mb-6"><button onClick={()=>setView('dashboard')}><Icon name="arrow-left"/></button><h2 className="font-bold text-2xl text-red-600">Hatalar</h2><button onClick={()=>setErrors([])}>Temizle</button></div><div className="flex-1 overflow-y-auto space-y-4">{errors.map((e,i)=><div key={i} className="bg-white p-6 rounded-2xl border-l-8 border-red-500 shadow"><div className="font-bold">{e.q}</div><div className="text-red-600">Sen: {e.w}</div><div className="text-emerald-600">Doğru: {e.r}</div><div className="text-sm mt-2">{e.e}</div></div>)}</div></div>}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
