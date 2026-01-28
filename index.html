@@ -40,6 +40,10 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // --- GÜNCEL MODEL TANIMI ---
+        // Kullanıcının belirttiği özel model sürümü
+        const CURRENT_MODEL = "gemini-2.5-flash-preview-09-2025";
+
         // --- TAM LİSTE MÜFREDAT (NUMARALI) ---
         const CURRICULUM = {
             OABT_ALAN: {
@@ -142,21 +146,44 @@
 
         const callGoogle = async (apiKey, modelName, prompt, type = 'json') => {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            
+            // API Body hazırlığı
+            const requestBody = {
+                contents: [{ parts: [{ text: prompt }] }]
+            };
+
+            // SORU ÜRETME PROBLEMİNİ ÇÖZEN KRİTİK KISIM
+            if (type === 'json') {
+                requestBody.generationConfig = {
+                    responseMimeType: "application/json"
+                };
+            }
+
             try {
-                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+                const response = await fetch(url, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(requestBody) 
+                });
+                
                 const data = await response.json();
                 if (data.error) throw new Error(data.error.message);
+                
                 let text = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (!text) throw new Error("Cevap boş.");
+                
                 if (type === 'html') return text;
                 
-                // JSON Temizleme
+                // JSON Temizleme (Her ihtimale karşı temizlik yapıyoruz, ama generationConfig çoğu işi çözer)
                 text = text.replace(/```json/g, '').replace(/```/g, '').trim();
                 const s = text.indexOf('['); const e = text.lastIndexOf(']');
                 if (s !== -1 && e !== -1) text = text.substring(s, e+1);
                 
                 return JSON.parse(text);
-            } catch (e) { console.error(e); throw e; }
+            } catch (e) { 
+                console.error(e); 
+                throw e; 
+            }
         };
 
         // --- COMPONENTS ---
@@ -171,7 +198,7 @@
                 setKeyStatus('checking');
                 try {
                     // Anahtarı test etmek için basit bir istek atıyoruz
-                    await callGoogle(keyInput.trim(), "gemini-2.0-flash-exp", "Merhaba", "html");
+                    await callGoogle(keyInput.trim(), CURRENT_MODEL, "Merhaba", "html");
                     
                     // Başarılıysa
                     localStorage.setItem("baris_key", keyInput.trim()); 
@@ -331,8 +358,6 @@
             );
         };
 
-        // ... (SmartNotebook, InfoModal, TeacherSelect, TrialSetup, Quiz, Flashcards - V47/48 ile aynı, sadece App'e entegre)
-        
         const SmartNotebook = ({ apiKey, modelName, close }) => {
             const [notes, setNotes] = useState(localStorage.getItem('baris_notebook') || "");
             const [processing, setProcessing] = useState(false);
@@ -445,7 +470,7 @@
                                    type==='card' ? `Konu: '${topic}'. 10 kart. JSON Array.`:
                                    `Konu: '${topic}'. 10 adet çoktan seçmeli soru hazırla. Zorluk: ÖABT/KPSS. Format: JSON Array olarak şu yapıda olsun: [{"q":"Soru metni","opts":["Seçenek1","Seçenek2","Seçenek3","Seçenek4","Seçenek5"],"ans":0,"exp":"Açıklama"}]. "ans" 0 ile 4 arasında sayı olmalı (0=A, 1=B...). Sadece JSON ver.`;
                     
-                    const res = await callGoogle(apiKey, "gemini-2.0-flash-exp", prompt + (type==='card'||type==='test'?'': ' HTML formatında ver.'), type==='card'||type==='test'?'json':'html');
+                    const res = await callGoogle(apiKey, CURRENT_MODEL, prompt + (type==='card'||type==='test'?'': ' HTML formatında ver.'), type==='card'||type==='test'?'json':'html');
                     
                     if(type==='hap'||type==='ozet') setModalData({type:'info', title:topic, content:res});
                     else if(type==='card') { setCardData(res); setView('flashcards'); }
@@ -457,7 +482,7 @@
                 if(!apiKey) return alert("Anahtar giriniz!"); setLoading(true);
                 try {
                     const prompt = `KPSS/ÖABT ${conf.type} için ${conf.count} adet zor deneme sorusu. Format: JSON Array [{"q":"...","opts":["..."],"ans":0,"exp":"..."}]. Sadece JSON.`;
-                    const res = await callGoogle(apiKey, "gemini-2.0-flash-exp", prompt, 'json');
+                    const res = await callGoogle(apiKey, CURRENT_MODEL, prompt, 'json');
                     setQuizData(res); setView('quiz');
                 } catch(e) { alert("Hata."); } finally { setLoading(false); }
             };
@@ -466,12 +491,12 @@
                 <div className="h-screen bg-slate-50 text-slate-800 font-sans select-none">
                     {loading && <div className="fixed inset-0 z-[100] bg-white/95 flex flex-col items-center justify-center"><div className="loader mb-6"></div><p className="font-bold text-indigo-600 animate-pulse text-xl">Barış Hocam İçin Hazırlanıyor...</p></div>}
                     
-                    {notebook && <SmartNotebook apiKey={apiKey} modelName="gemini-2.0-flash-exp" close={()=>setNotebook(false)}/>}
+                    {notebook && <SmartNotebook apiKey={apiKey} modelName={CURRENT_MODEL} close={()=>setNotebook(false)}/>}
                     {modalData?.type === 'info' && <InfoModal data={modalData} close={()=>setModalData(null)}/>}
                     {modalData?.type === 'video' && <TeacherSelectModal topic={modalData.topic} close={()=>setModalData(null)}/>}
 
                     {view === 'dashboard' && <Dashboard apiKey={apiKey} setApiKey={setApiKey} changeView={setView} daysLeft={daysLeft} openNotebook={()=>setNotebook(true)}/>}
-                    {view === 'syllabus' && <Syllabus apiKey={apiKey} modelName="gemini-2.0-flash-exp" goBack={()=>setView('dashboard')} onAction={handleAction}/>}
+                    {view === 'syllabus' && <Syllabus apiKey={apiKey} modelName={CURRENT_MODEL} goBack={()=>setView('dashboard')} onAction={handleAction}/>}
                     {view === 'trial_setup' && <TrialSetup goBack={()=>setView('dashboard')} startTrial={startTrial}/>}
                     {view === 'quiz' && <Quiz questions={quizData} goBack={()=>setView('dashboard')} addToErrors={err=>setErrors([err,...errors])} isNotebook={false}/>}
                     {view === 'flashcards' && <Flashcards cards={cardData} goBack={()=>setView('syllabus')}/>}
