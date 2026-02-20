@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Barış Akademi - V50 (Stabil & Güvenli)</title>
+    <title>Barış Akademi - V50.1 (Stabil, Güvenli & Hedef 2026)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.min.js"></script>
@@ -40,15 +40,11 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- GÜNCEL MODEL TANIMI ---
-        // Kullanıcının belirttiği özel model sürümü
-        const CURRENT_MODEL = "gemini-2.5-flash-preview-09-2025";
-
         // --- TAM LİSTE MÜFREDAT (NUMARALI) ---
         const CURRICULUM = {
             OABT_ALAN: {
                 title: "ÖABT Okul Öncesi Alan Bilgisi",
-                color: "rose", // Kırmızı/Pembe Tema
+                color: "rose", 
                 units: [
                     {
                         id: 1, title: "Erken Çocukluk Eğitimine Giriş", 
@@ -82,7 +78,7 @@
             },
             OABT_EGITIM: {
                 title: "ÖABT Okul Öncesi Alan Eğitimi",
-                color: "amber", // Turuncu/Sarı Tema
+                color: "amber", 
                 units: [
                     {
                         id: 1, title: "Alan Eğitimi Temelleri", 
@@ -100,7 +96,7 @@
             },
             AGS: {
                 title: "Akademi Giriş Sınavı (AGS)",
-                color: "sky", // Mavi Tema
+                color: "sky", 
                 units: [
                     {
                         id: 1, title: "Sözel Yetenek", 
@@ -147,16 +143,12 @@
         const callGoogle = async (apiKey, modelName, prompt, type = 'json') => {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
             
-            // API Body hazırlığı
             const requestBody = {
                 contents: [{ parts: [{ text: prompt }] }]
             };
 
-            // SORU ÜRETME PROBLEMİNİ ÇÖZEN KRİTİK KISIM
             if (type === 'json') {
-                requestBody.generationConfig = {
-                    responseMimeType: "application/json"
-                };
+                requestBody.generationConfig = { responseMimeType: "application/json" };
             }
 
             try {
@@ -174,7 +166,6 @@
                 
                 if (type === 'html') return text;
                 
-                // JSON Temizleme (Her ihtimale karşı temizlik yapıyoruz, ama generationConfig çoğu işi çözer)
                 text = text.replace(/```json/g, '').replace(/```/g, '').trim();
                 const s = text.indexOf('['); const e = text.lastIndexOf(']');
                 if (s !== -1 && e !== -1) text = text.substring(s, e+1);
@@ -188,27 +179,27 @@
 
         // --- COMPONENTS ---
 
-        const Dashboard = ({ apiKey, setApiKey, changeView, daysLeft, openNotebook }) => {
+        const Dashboard = ({ apiKey, setApiKey, modelName, setModelName, changeView, daysLeft, openNotebook }) => {
             const [keyInput, setKeyInput] = useState(apiKey || "");
-            const [keyStatus, setKeyStatus] = useState(apiKey ? 'valid' : 'idle'); // idle, valid, invalid, checking
+            const [modelInput, setModelInput] = useState(modelName || "gemini-2.5-flash-preview-09-2025");
+            const [keyStatus, setKeyStatus] = useState(apiKey ? 'valid' : 'idle'); 
 
             const saveKey = async () => { 
-                if(!keyInput.trim()) return alert("Lütfen anahtarı kutuya yapıştır!");
+                if(!keyInput.trim() || !modelInput.trim()) return alert("Lütfen anahtarı ve modeli eksiksiz girin!");
                 
                 setKeyStatus('checking');
                 try {
-                    // Anahtarı test etmek için basit bir istek atıyoruz
-                    await callGoogle(keyInput.trim(), CURRENT_MODEL, "Merhaba", "html");
+                    await callGoogle(keyInput.trim(), modelInput.trim(), "Merhaba", "html");
                     
-                    // Başarılıysa
                     localStorage.setItem("baris_key", keyInput.trim()); 
+                    localStorage.setItem("baris_model", modelInput.trim()); 
                     setApiKey(keyInput.trim()); 
+                    setModelName(modelInput.trim());
                     setKeyStatus('valid');
-                    alert("Anahtar Doğrulandı ve Kaydedildi! ✅"); 
+                    alert("Ayarlar Doğrulandı ve Kaydedildi! ✅"); 
                 } catch (error) {
-                    // Başarısızsa
                     setKeyStatus('invalid');
-                    alert("Bu anahtar çalışmıyor veya hatalı! ❌");
+                    alert("Anahtar veya Model hatalı! ❌");
                 }
             };
 
@@ -216,7 +207,7 @@
                 if(keyStatus === 'valid') return 'border-emerald-500 bg-emerald-50';
                 if(keyStatus === 'invalid') return 'border-red-500 bg-red-50';
                 if(keyStatus === 'checking') return 'border-yellow-500 bg-yellow-50';
-                return 'border-orange-200 bg-orange-50'; // Default idle
+                return 'border-orange-200 bg-orange-50'; 
             };
 
             return (
@@ -224,12 +215,12 @@
                     <div className="text-center mb-8 mt-4">
                         <div className="bg-indigo-100 text-indigo-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm"><Icon name="crown" size={32}/></div>
                         <h1 className="text-5xl font-black text-slate-800 brand tracking-tighter">BARIŞ AKADEMİ</h1>
-                        <p className="text-indigo-600 font-bold text-lg tracking-widest uppercase opacity-80">2026 Efsane Sürüm</p>
+                        <p className="text-indigo-600 font-bold text-lg tracking-widest uppercase opacity-80">2026 Atanma Sürümü</p>
                     </div>
 
                     <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                         {/* SAYAÇ */}
-                        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2rem] p-8 text-white shadow-xl relative overflow-hidden flex flex-col justify-between h-48">
+                        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2rem] p-8 text-white shadow-xl relative overflow-hidden flex flex-col justify-between h-56">
                             <div>
                                 <div className="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-2">Sınava Kalan Süre</div>
                                 <div className="text-7xl font-black brand">{daysLeft}</div>
@@ -238,43 +229,53 @@
                             <Icon name="calendar-clock" size={140} className="absolute -right-8 -bottom-8 opacity-10 rotate-12"/>
                         </div>
                         
-                        {/* ANAHTAR GİRİŞİ (GÜNCELLENMİŞ VERSİYON) */}
-                        <div className={`rounded-[2rem] p-8 shadow-xl border-4 flex flex-col justify-center h-48 relative overflow-hidden transition-colors duration-300 ${getBorderColor()}`}>
+                        {/* ANAHTAR VE MODEL GİRİŞİ */}
+                        <div className={`rounded-[2rem] p-6 shadow-xl border-4 flex flex-col justify-center h-56 relative overflow-hidden transition-colors duration-300 ${getBorderColor()}`}>
                             {!apiKey ? (
-                                <div className="z-10">
+                                <div className="z-10 w-full">
                                     <div className="flex items-center gap-2 text-slate-700 font-black text-xl mb-3">
-                                        <Icon name="key"/> 
-                                        {keyStatus === 'invalid' ? <span className="text-red-600">Hatalı Anahtar!</span> : 'ANAHTAR GİRİŞİ'}
+                                        <Icon name="settings"/> 
+                                        {keyStatus === 'invalid' ? <span className="text-red-600">Hatalı Giriş!</span> : 'SİSTEM AYARLARI'}
                                     </div>
-                                    <p className="text-slate-600 text-sm mb-4 font-medium">Sistemi kullanmak için Google API anahtarını buraya yapıştır.</p>
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-col gap-2">
                                         <input 
                                             value={keyInput} 
                                             onChange={e=>setKeyInput(e.target.value)} 
-                                            className="flex-1 p-3 bg-white border-2 border-slate-200 rounded-xl font-mono text-sm outline-none focus:border-indigo-500 transition shadow-inner" 
-                                            placeholder="AIzaSy..."
+                                            className="w-full p-3 bg-white border-2 border-slate-200 rounded-xl font-mono text-sm outline-none focus:border-indigo-500 transition shadow-inner" 
+                                            placeholder="Google API Anahtarı (AIzaSy...)"
                                             disabled={keyStatus === 'checking'}
                                         />
-                                        <button 
-                                            onClick={saveKey} 
-                                            disabled={keyStatus === 'checking'}
-                                            className="bg-slate-800 text-white px-5 rounded-xl font-bold shadow-md hover:bg-black active:scale-95 transition flex items-center"
-                                        >
-                                            {keyStatus === 'checking' ? '...' : 'KAYDET'}
-                                        </button>
+                                        <div className="flex gap-2">
+                                            <input 
+                                                value={modelInput} 
+                                                onChange={e=>setModelInput(e.target.value)} 
+                                                className="flex-1 p-3 bg-white border-2 border-slate-200 rounded-xl font-mono text-xs outline-none focus:border-indigo-500 transition shadow-inner" 
+                                                placeholder="Model Adı"
+                                                disabled={keyStatus === 'checking'}
+                                            />
+                                            <button 
+                                                onClick={saveKey} 
+                                                disabled={keyStatus === 'checking'}
+                                                className="bg-slate-800 text-white px-5 rounded-xl font-bold shadow-md hover:bg-black active:scale-95 transition flex items-center whitespace-nowrap"
+                                            >
+                                                {keyStatus === 'checking' ? '...' : 'KAYDET'}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="text-center z-10">
                                     <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 animate-pulse"><Icon name="check" size={32}/></div>
                                     <div className="font-bold text-emerald-600 text-xl">Sistem Aktif & Hazır</div>
-                                    <button onClick={()=>{setApiKey(""); setKeyStatus('idle'); setKeyInput("");}} className="text-xs text-slate-400 font-bold hover:text-red-500 underline mt-2">Anahtarı Değiştir</button>
+                                    <div className="text-xs text-slate-500 mt-1 font-mono">Model: {modelName}</div>
+                                    <button onClick={()=>{setApiKey(""); setKeyStatus('idle');}} className="text-xs text-slate-400 font-bold hover:text-red-500 underline mt-2">Ayarları Değiştir</button>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                    {/* ANA MENÜ BİLEŞENLERİ */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full">
                         <button onClick={()=>changeView('syllabus')} className="bg-white p-6 rounded-3xl shadow-lg border-2 border-transparent hover:border-indigo-500 hover:shadow-indigo-100 transition group flex flex-col items-center gap-3">
                             <div className="bg-indigo-100 text-indigo-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="book-open-check" size={32}/></div>
                             <span className="font-bold text-slate-700 text-lg">Ders & Müfredat</span>
@@ -291,6 +292,16 @@
                             <div className="bg-red-100 text-red-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="alert-triangle" size={32}/></div>
                             <span className="font-bold text-slate-700 text-lg">Hata Defteri</span>
                         </button>
+                        
+                        {/* YENİ EKLENEN KAZANDIRAN ÖZELLİKLER */}
+                        <button onClick={()=>changeView('pomodoro')} className="bg-white p-6 rounded-3xl shadow-lg border-2 border-transparent hover:border-rose-500 hover:shadow-rose-100 transition group flex flex-col items-center gap-3">
+                            <div className="bg-rose-100 text-rose-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="timer" size={32}/></div>
+                            <span className="font-bold text-slate-700 text-lg">Pomodoro</span>
+                        </button>
+                        <button onClick={()=>changeView('calculator')} className="bg-white p-6 rounded-3xl shadow-lg border-2 border-transparent hover:border-sky-500 hover:shadow-sky-100 transition group flex flex-col items-center gap-3">
+                            <div className="bg-sky-100 text-sky-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="calculator" size={32}/></div>
+                            <span className="font-bold text-slate-700 text-lg">Net Hesapla</span>
+                        </button>
                     </div>
                 </div>
             );
@@ -299,12 +310,6 @@
         const Syllabus = ({ apiKey, modelName, goBack, onAction }) => {
             const [tab, setTab] = useState('OABT_ALAN');
             
-            const colors = {
-                'rose': 'bg-rose-600 text-white', 'rose-light': 'bg-rose-50 text-rose-700 border-rose-100',
-                'amber': 'bg-amber-500 text-white', 'amber-light': 'bg-amber-50 text-amber-700 border-amber-100',
-                'sky': 'bg-sky-600 text-white', 'sky-light': 'bg-sky-50 text-sky-700 border-sky-100'
-            };
-
             const activeColor = CURRICULUM[tab].color;
 
             return (
@@ -314,7 +319,6 @@
                         <h2 className="font-bold text-xl text-slate-800">Müfredat & Çalışma</h2>
                     </div>
                     
-                    {/* Sekmeler */}
                     <div className="p-4 flex gap-3 overflow-x-auto hide-scroll sticky top-0 z-10 bg-slate-50/95 backdrop-blur">
                         {Object.keys(CURRICULUM).map(k=>(
                             <button key={k} onClick={()=>setTab(k)} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition shadow-sm border-2 ${tab===k ? `border-${CURRICULUM[k].color}-500 bg-${CURRICULUM[k].color}-50 text-${CURRICULUM[k].color}-700` : 'bg-white text-slate-500 border-slate-200'}`}>
@@ -362,8 +366,18 @@
             const [notes, setNotes] = useState(localStorage.getItem('baris_notebook') || "");
             const [processing, setProcessing] = useState(false);
             const [quizFromNotes, setQuizFromNotes] = useState(null);
+            
             const handleSave = (val) => { setNotes(val); localStorage.setItem('baris_notebook', val); };
-            const polish = async () => { if(!notes.trim()) return; setProcessing(true); try { const res = await callGoogle(apiKey, modelName, `Düzelt:\n${notes}`, 'html'); handleSave(res.replace(/<[^>]*>?/gm, '')); alert("Düzenlendi!"); } catch(e){} finally { setProcessing(false); } };
+            
+            const polish = async () => { 
+                if(!notes.trim()) return; setProcessing(true); 
+                try { 
+                    const res = await callGoogle(apiKey, modelName, `Düzelt:\n${notes}`, 'html'); 
+                    handleSave(res.replace(/<[^>]*>?/gm, '')); 
+                    alert("Düzenlendi!"); 
+                } catch(e){} finally { setProcessing(false); } 
+            };
+            
             const genQuiz = async () => { 
                 if(!notes.trim()) return; 
                 setProcessing(true); 
@@ -373,8 +387,24 @@
                     setQuizFromNotes(res); 
                 } catch(e){ alert("Hata oluştu."); } finally { setProcessing(false); } 
             };
+            
             if(quizFromNotes) return <div className="fixed inset-0 z-[90] bg-white"><Quiz questions={quizFromNotes} goBack={()=>setQuizFromNotes(null)} addToErrors={()=>{}} isNotebook={true}/></div>;
-            return <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm anim-fade" onClick={close}><div className="bg-white w-full max-w-3xl h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()}><div className="p-4 bg-amber-400 text-amber-950 font-bold flex justify-between items-center"><span className="flex items-center gap-2"><Icon name="edit-3"/> Not Defterim</span><button onClick={close}><Icon name="x"/></button></div><textarea value={notes} onChange={e=>handleSave(e.target.value)} className="flex-1 p-6 bg-amber-50 resize-none outline-none text-lg text-slate-700 leading-relaxed font-medium" placeholder="Buraya yaz..."></textarea><div className="p-3 bg-white border-t flex gap-2"><button onClick={polish} disabled={processing} className="flex-1 bg-indigo-100 text-indigo-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Icon name="wand-2"/> Düzenle</button><button onClick={genQuiz} disabled={processing} className="flex-1 bg-emerald-100 text-emerald-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Icon name="brain-circuit"/> Soru Üret</button></div></div></div>;
+            
+            return (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm anim-fade" onClick={close}>
+                    <div className="bg-white w-full max-w-3xl h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()}>
+                        <div className="p-4 bg-amber-400 text-amber-950 font-bold flex justify-between items-center">
+                            <span className="flex items-center gap-2"><Icon name="edit-3"/> Not Defterim</span>
+                            <button onClick={close}><Icon name="x"/></button>
+                        </div>
+                        <textarea value={notes} onChange={e=>handleSave(e.target.value)} className="flex-1 p-6 bg-amber-50 resize-none outline-none text-lg text-slate-700 leading-relaxed font-medium" placeholder="Buraya yaz..."></textarea>
+                        <div className="p-3 bg-white border-t flex gap-2">
+                            <button onClick={polish} disabled={processing} className="flex-1 bg-indigo-100 text-indigo-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Icon name="wand-2"/> Düzenle</button>
+                            <button onClick={genQuiz} disabled={processing} className="flex-1 bg-emerald-100 text-emerald-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Icon name="brain-circuit"/> Soru Üret</button>
+                        </div>
+                    </div>
+                </div>
+            );
         };
 
         const InfoModal = ({ data, close }) => (
@@ -423,7 +453,14 @@
             const [show, setShow] = useState(false);
             const [score, setScore] = useState(0);
             const q = questions[idx];
-            const handleAns = (i) => { if(show) return; setShow(true); if(i===q.ans) setScore(score+1); else addToErrors({q:q.q, w:q.opts[i], r:q.opts[q.ans], e:q.exp, t: isNotebook?"Defter":"Deneme"}); };
+            
+            const handleAns = (i) => { 
+                if(show) return; 
+                setShow(true); 
+                if(i===q.ans) setScore(score+1); 
+                else addToErrors({q:q.q, w:q.opts[i], r:q.opts[q.ans], e:q.exp, t: isNotebook?"Defter":"Deneme"}); 
+            };
+            
             return (
                 <div className="h-full flex flex-col bg-slate-50 p-6 anim-fade">
                     <div className="flex justify-between items-center mb-6"><button onClick={goBack} className="text-slate-400 font-bold">Çıkış</button><div className="bg-white px-4 py-2 rounded-full font-bold shadow-sm text-indigo-600">{idx+1}/{questions.length}</div></div>
@@ -445,9 +482,122 @@
             );
         };
 
+        // YENİ ÖZELLİK: Pomodoro Çalışma Sayacı
+        const Pomodoro = ({ goBack }) => {
+            const [timeLeft, setTimeLeft] = useState(25 * 60);
+            const [isActive, setIsActive] = useState(false);
+            const [mode, setMode] = useState('work'); 
+
+            useEffect(() => {
+                let interval = null;
+                if (isActive && timeLeft > 0) {
+                    interval = setInterval(() => setTimeLeft(timeLeft - 1), 1000);
+                } else if (timeLeft === 0 && isActive) {
+                    setIsActive(false);
+                    alert(mode === 'work' ? 'Harika çalıştın! Şimdi mola zamanı.' : 'Mola bitti! Çalışmaya geri dönelim.');
+                    if(mode === 'work') { setMode('break'); setTimeLeft(5 * 60); }
+                    else { setMode('work'); setTimeLeft(25 * 60); }
+                }
+                return () => clearInterval(interval);
+            }, [isActive, timeLeft, mode]);
+
+            const toggle = () => setIsActive(!isActive);
+            const reset = () => { setIsActive(false); setTimeLeft(mode === 'work' ? 25 * 60 : 5 * 60); };
+
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+
+            return (
+                <div className="h-full flex flex-col items-center justify-center p-6 bg-slate-50 anim-fade relative">
+                    <button onClick={goBack} className="absolute top-6 left-6 bg-white p-3 rounded-full shadow"><Icon name="arrow-left"/></button>
+                    <div className="bg-white p-10 rounded-[3rem] shadow-2xl text-center max-w-sm w-full border-4 border-rose-100">
+                        <Icon name="timer" size={48} className="mx-auto mb-4 text-rose-500" />
+                        <h2 className="text-3xl font-black text-slate-800 mb-8">{mode === 'work' ? 'ODAK ZAMANI' : 'MOLA ZAMANI'}</h2>
+                        <div className="text-7xl font-black text-rose-600 mb-8 brand">
+                            {mins.toString().padStart(2, '0')}:{secs.toString().padStart(2, '0')}
+                        </div>
+                        <div className="flex gap-4">
+                            <button onClick={toggle} className="flex-1 bg-rose-500 text-white py-4 rounded-2xl font-bold text-xl hover:bg-rose-600 transition shadow-lg">
+                                {isActive ? 'DURAKLAT' : 'BAŞLA'}
+                            </button>
+                            <button onClick={reset} className="bg-slate-200 text-slate-600 px-6 py-4 rounded-2xl font-bold hover:bg-slate-300 transition">
+                                <Icon name="rotate-ccw" />
+                            </button>
+                        </div>
+                        <div className="mt-8 flex gap-2 justify-center">
+                            <button onClick={()=>{setMode('work'); setTimeLeft(25*60); setIsActive(false);}} className={`px-4 py-2 rounded-xl font-bold ${mode==='work'?'bg-rose-100 text-rose-700':'text-slate-400'}`}>Çalışma (25d)</button>
+                            <button onClick={()=>{setMode('break'); setTimeLeft(5*60); setIsActive(false);}} className={`px-4 py-2 rounded-xl font-bold ${mode==='break'?'bg-blue-100 text-blue-700':'text-slate-400'}`}>Mola (5d)</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // YENİ ÖZELLİK: P121 Net Hesaplayıcı
+        const ScoreCalculator = ({ goBack }) => {
+            const [scores, setScores] = useState({
+                gygk: { d: 0, y: 0 },
+                egitim: { d: 0, y: 0 },
+                oabt: { d: 0, y: 0 }
+            });
+
+            const calcNet = (d, y) => Math.max(0, d - (y / 4));
+
+            return (
+                <div className="h-full flex flex-col items-center p-6 bg-slate-50 anim-fade relative overflow-y-auto">
+                    <button onClick={goBack} className="absolute top-6 left-6 bg-white p-3 rounded-full shadow"><Icon name="arrow-left"/></button>
+                    <div className="w-full max-w-2xl mt-12 mb-8 text-center">
+                        <div className="bg-sky-100 text-sky-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm"><Icon name="calculator" size={32}/></div>
+                        <h2 className="text-3xl font-black text-slate-800">KPSS & ÖABT Net Hesaplama</h2>
+                        <p className="text-slate-500 mt-2 font-medium">Bu sene atanmak için hedeflerini belirle ve analiz et!</p>
+                    </div>
+
+                    <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden mb-12">
+                        {['gygk', 'egitim', 'oabt'].map((test) => (
+                            <div key={test} className="p-6 border-b border-slate-100 flex items-center justify-between gap-4 flex-wrap">
+                                <div className="w-full md:w-auto font-bold text-lg text-slate-700">
+                                    {test === 'gygk' ? 'Genel Kültür Yetenek (120 Soru)' : test === 'egitim' ? 'Eğitim Bilimleri (80 Soru)' : 'ÖABT Okul Öncesi (75 Soru)'}
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="flex flex-col">
+                                        <label className="text-xs text-emerald-600 font-bold mb-1">Doğru</label>
+                                        <input type="number" min="0" max="120" value={scores[test].d} onChange={e=>setScores({...scores, [test]:{...scores[test], d: parseInt(e.target.value)||0}})} className="w-20 p-2 border-2 border-emerald-200 rounded-xl text-center font-bold outline-none focus:border-emerald-500 bg-emerald-50" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <label className="text-xs text-red-600 font-bold mb-1">Yanlış</label>
+                                        <input type="number" min="0" max="120" value={scores[test].y} onChange={e=>setScores({...scores, [test]:{...scores[test], y: parseInt(e.target.value)||0}})} className="w-20 p-2 border-2 border-red-200 rounded-xl text-center font-bold outline-none focus:border-red-500 bg-red-50" />
+                                    </div>
+                                    <div className="flex flex-col justify-end pb-2">
+                                        <div className="text-xl font-black text-indigo-600 w-16 text-right">{calcNet(scores[test].d, scores[test].y).toFixed(2)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        
+                        <div className="p-8 bg-slate-800 text-white flex justify-between items-center">
+                            <div>
+                                <div className="text-slate-400 font-bold uppercase tracking-wider text-sm">Tahmini Puan Türü</div>
+                                <div className="text-2xl font-black text-amber-400">P121 (ÖABT)</div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-slate-400 font-bold uppercase tracking-wider text-sm mb-1">Toplam Net</div>
+                                <div className="text-4xl font-black">
+                                    {(calcNet(scores.gygk.d, scores.gygk.y) + calcNet(scores.egitim.d, scores.egitim.y) + calcNet(scores.oabt.d, scores.oabt.y)).toFixed(2)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const App = () => {
             const [view, setView] = useState('dashboard');
+            
+            // YENİ: Model state'i
+            const [modelName, setModelName] = useState(localStorage.getItem('baris_model') || "gemini-2.5-flash-preview-09-2025");
             const [apiKey, setApiKey] = useState(localStorage.getItem('baris_key'));
+            
             const [loading, setLoading] = useState(false);
             const [modalData, setModalData] = useState(null); 
             const [quizData, setQuizData] = useState([]);
@@ -460,17 +610,17 @@
             useEffect(()=>{localStorage.setItem('baris_errors', JSON.stringify(errors))},[errors]);
 
             const handleAction = async (type, topic) => {
-                if(!apiKey) return alert("Anahtar giriniz!");
+                if(!apiKey) return alert("Sistem ayarlarından API anahtarını giriniz!");
                 if(type==='video') { setModalData({type:'video', topic}); return; }
                 setLoading(true);
                 try {
-                    // BEYAZ EKRAN SORUNU İÇİN GÜÇLENDİRİLMİŞ PROMPT (SORU İÇİN)
                     const prompt = type==='hap' ? `Konu: '${topic}'. KPSS için 5 kritik hap bilgi. HTML <strong>, <em> kullan.`:
                                    type==='ozet' ? `Konu: '${topic}'. ÖABT detaylı özet. HTML <h3>, <strong> kullan.`:
                                    type==='card' ? `Konu: '${topic}'. 10 kart. JSON Array.`:
                                    `Konu: '${topic}'. 10 adet çoktan seçmeli soru hazırla. Zorluk: ÖABT/KPSS. Format: JSON Array olarak şu yapıda olsun: [{"q":"Soru metni","opts":["Seçenek1","Seçenek2","Seçenek3","Seçenek4","Seçenek5"],"ans":0,"exp":"Açıklama"}]. "ans" 0 ile 4 arasında sayı olmalı (0=A, 1=B...). Sadece JSON ver.`;
                     
-                    const res = await callGoogle(apiKey, CURRENT_MODEL, prompt + (type==='card'||type==='test'?'': ' HTML formatında ver.'), type==='card'||type==='test'?'json':'html');
+                    // YENİ: modelName parametresi ile istek atılıyor
+                    const res = await callGoogle(apiKey, modelName, prompt + (type==='card'||type==='test'?'': ' HTML formatında ver.'), type==='card'||type==='test'?'json':'html');
                     
                     if(type==='hap'||type==='ozet') setModalData({type:'info', title:topic, content:res});
                     else if(type==='card') { setCardData(res); setView('flashcards'); }
@@ -479,28 +629,40 @@
             };
 
             const startTrial = async (conf) => {
-                if(!apiKey) return alert("Anahtar giriniz!"); setLoading(true);
+                if(!apiKey) return alert("Sistem ayarlarından API anahtarını giriniz!"); 
+                setLoading(true);
                 try {
                     const prompt = `KPSS/ÖABT ${conf.type} için ${conf.count} adet zor deneme sorusu. Format: JSON Array [{"q":"...","opts":["..."],"ans":0,"exp":"..."}]. Sadece JSON.`;
-                    const res = await callGoogle(apiKey, CURRENT_MODEL, prompt, 'json');
+                    // YENİ: modelName parametresi ile istek atılıyor
+                    const res = await callGoogle(apiKey, modelName, prompt, 'json');
                     setQuizData(res); setView('quiz');
                 } catch(e) { alert("Hata."); } finally { setLoading(false); }
             };
 
             return (
                 <div className="h-screen bg-slate-50 text-slate-800 font-sans select-none">
-                    {loading && <div className="fixed inset-0 z-[100] bg-white/95 flex flex-col items-center justify-center"><div className="loader mb-6"></div><p className="font-bold text-indigo-600 animate-pulse text-xl">Barış Hocam İçin Hazırlanıyor...</p></div>}
+                    {loading && <div className="fixed inset-0 z-[100] bg-white/95 flex flex-col items-center justify-center"><div className="loader mb-6"></div><p className="font-bold text-indigo-600 animate-pulse text-xl">Atanmak İçin Hazırlanıyor...</p></div>}
                     
-                    {notebook && <SmartNotebook apiKey={apiKey} modelName={CURRENT_MODEL} close={()=>setNotebook(false)}/>}
+                    {/* YENİ: notebook bileşenine modelName gönderildi */}
+                    {notebook && <SmartNotebook apiKey={apiKey} modelName={modelName} close={()=>setNotebook(false)}/>}
                     {modalData?.type === 'info' && <InfoModal data={modalData} close={()=>setModalData(null)}/>}
                     {modalData?.type === 'video' && <TeacherSelectModal topic={modalData.topic} close={()=>setModalData(null)}/>}
 
-                    {view === 'dashboard' && <Dashboard apiKey={apiKey} setApiKey={setApiKey} changeView={setView} daysLeft={daysLeft} openNotebook={()=>setNotebook(true)}/>}
-                    {view === 'syllabus' && <Syllabus apiKey={apiKey} modelName={CURRENT_MODEL} goBack={()=>setView('dashboard')} onAction={handleAction}/>}
+                    {/* YENİ: Dashboard'a model yönetimi prop'ları gönderildi */}
+                    {view === 'dashboard' && <Dashboard apiKey={apiKey} setApiKey={setApiKey} modelName={modelName} setModelName={setModelName} changeView={setView} daysLeft={daysLeft} openNotebook={()=>setNotebook(true)}/>}
+                    
+                    {/* YENİ: Syllabus bileşenine modelName gönderildi */}
+                    {view === 'syllabus' && <Syllabus apiKey={apiKey} modelName={modelName} goBack={()=>setView('dashboard')} onAction={handleAction}/>}
+                    
                     {view === 'trial_setup' && <TrialSetup goBack={()=>setView('dashboard')} startTrial={startTrial}/>}
                     {view === 'quiz' && <Quiz questions={quizData} goBack={()=>setView('dashboard')} addToErrors={err=>setErrors([err,...errors])} isNotebook={false}/>}
                     {view === 'flashcards' && <Flashcards cards={cardData} goBack={()=>setView('syllabus')}/>}
-                    {view === 'errors' && <div className="h-full p-6 flex flex-col max-w-3xl mx-auto"><div className="flex justify-between items-center mb-6"><button onClick={()=>setView('dashboard')}><Icon name="arrow-left"/></button><h2 className="font-bold text-2xl text-red-600">Hatalar</h2><button onClick={()=>setErrors([])}>Temizle</button></div><div className="flex-1 overflow-y-auto space-y-4">{errors.map((e,i)=><div key={i} className="bg-white p-6 rounded-2xl border-l-8 border-red-500 shadow"><div className="font-bold">{e.q}</div><div className="text-red-600">Sen: {e.w}</div><div className="text-emerald-600">Doğru: {e.r}</div><div className="text-sm mt-2">{e.e}</div></div>)}</div></div>}
+                    
+                    {/* YENİ: Pomodoro ve Net Hesaplama Görünümleri */}
+                    {view === 'pomodoro' && <Pomodoro goBack={()=>setView('dashboard')} />}
+                    {view === 'calculator' && <ScoreCalculator goBack={()=>setView('dashboard')} />}
+
+                    {view === 'errors' && <div className="h-full p-6 flex flex-col max-w-3xl mx-auto"><div className="flex justify-between items-center mb-6"><button onClick={()=>setView('dashboard')} className="p-3 bg-white rounded-full shadow"><Icon name="arrow-left"/></button><h2 className="font-bold text-2xl text-red-600">Hatalar</h2><button className="bg-white px-4 py-2 font-bold rounded-xl shadow text-slate-500" onClick={()=>setErrors([])}>Temizle</button></div><div className="flex-1 overflow-y-auto space-y-4">{errors.map((e,i)=><div key={i} className="bg-white p-6 rounded-2xl border-l-8 border-red-500 shadow"><div className="font-bold">{e.q}</div><div className="text-red-600">Sen: {e.w}</div><div className="text-emerald-600">Doğru: {e.r}</div><div className="text-sm mt-2">{e.e}</div></div>)}</div></div>}
                 </div>
             );
         };
@@ -510,3 +672,4 @@
     </script>
 </body>
 </html>
+
