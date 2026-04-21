@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Barış Akademi - V50.1 (Stabil, Güvenli & Hedef 2026)</title>
+    <title>Barış Akademi - V50 (Stabil & Güvenli)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.min.js"></script>
@@ -27,6 +27,19 @@
         .readable-text ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
         .readable-text h3 { color: #1e293b; font-size: 1.25rem; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.25rem; }
         
+        /* ÖZEL RENKLİ KAVRAM HARİTASI VE HAFIZA ÇİVİSİ STİLLERİ */
+        .readable-text strong { background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 6px; font-weight: 900; }
+        .readable-text em { background-color: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 6px; font-style: normal; font-weight: 700; }
+        .readable-text mark { background-color: #fce7f3; color: #be123c; padding: 2px 6px; border-radius: 6px; font-weight: 800; }
+        .readable-text table { width: 100%; border-radius: 12px; overflow: hidden; border-collapse: collapse; margin: 1.5rem 0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 2px solid #e2e8f0; }
+        .readable-text th { background: #4f46e5; color: white; padding: 14px; font-weight: 800; text-align: left; }
+        .readable-text td { padding: 14px; border-bottom: 1px solid #e2e8f0; background: white; font-weight: 500; }
+        .readable-text ul { list-style: none; padding: 0; margin-bottom: 1.5rem; }
+        .readable-text ul li { position: relative; padding-left: 2rem; margin-bottom: 0.75rem; font-weight: 600; color: #334155; }
+        .readable-text ul li::before { content: '🎯'; position: absolute; left: 0; top: 0; }
+        .readable-text h3 { color: #1e293b; font-size: 1.5rem; font-weight: 900; margin-top: 2rem; margin-bottom: 1rem; border-bottom: 3px dashed #cbd5e1; padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .readable-text blockquote { background: #fff7ed; border-left: 6px solid #f59e0b; padding: 1.5rem; margin: 1.5rem 0; border-radius: 0 16px 16px 0; font-size: 1.1rem; font-style: italic; color: #92400e; font-weight: 700; box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.05); }
+        
         /* Kart Stili */
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }
@@ -40,88 +53,73 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- TAM LİSTE MÜFREDAT (NUMARALI) ---
+        // --- TAM LİSTE MÜFREDAT (ÖSYM %100 GÜNCEL ÖABT + AGS + GKGY) ---
         const CURRICULUM = {
-            OABT_ALAN: {
-                title: "ÖABT Okul Öncesi Alan Bilgisi",
-                color: "rose", 
+            BANKO_2026: {
+                title: "🎯 2026 ATAMA PAKETİ (Banko Konular)",
+                color: "rose",
                 units: [
-                    {
-                        id: 1, title: "Erken Çocukluk Eğitimine Giriş", 
-                        topics: ["1.1. EÇE Tanımı, Amacı ve İlkeleri", "1.2. Tarihsel Süreç ve Düşünürler", "1.3. Türkiye'de Okul Öncesi Eğitim", "1.4. Kuramlar ve Yaklaşımlar"]
-                    },
-                    {
-                        id: 2, title: "Çocuk Sağlığı ve İlkyardım", 
-                        topics: ["2.1. Sağlık Ölçütleri ve Büyüme", "2.2. Anne ve Çocuk Sağlığı", "2.3. Temel İlkyardım Uygulamaları", "2.4. Çocuk Hastalıkları ve Aşılar"]
-                    },
-                    {
-                        id: 3, title: "Erken Çocuklukta Gelişim", 
-                        topics: ["3.1. Fiziksel ve Motor Gelişim", "3.2. Bilişsel Gelişim", "3.3. Dil Gelişimi", "3.4. Sosyal ve Duygusal Gelişim", "3.5. Kişilik ve Ahlak Gelişimi", "3.6. Cinsel Gelişim"]
-                    },
-                    {
-                        id: 4, title: "Çocuk Ruh Sağlığı", 
-                        topics: ["4.1. Ruh Sağlığı Tanımı ve Kuramlar", "4.2. Bağlanma ve Uyum Problemleri", "4.3. Davranış ve Alışkanlık Bozuklukları", "4.4. Özel Gereksinimli Çocuklar"]
-                    },
-                    {
-                        id: 5, title: "Erken Çocukluk Dönemi Edebiyatı", 
-                        topics: ["5.1. Çocuk Edebiyatı Tanımı ve Önemi", "5.2. Edebi Türler (Masal, Hikaye vb.)", "5.3. Kitap Seçimi ve Nitelikleri"]
-                    },
-                    {
-                        id: 6, title: "Anne-Baba Eğitimi", 
-                        topics: ["6.1. Aile Eğitimi Modelleri", "6.2. Aile Katılımı Çalışmaları", "6.3. Anne-Baba Tutumları"]
-                    },
-                    {
-                        id: 7, title: "Çocuk Hakları", 
-                        topics: ["7.1. Çocuk Hakları Sözleşmesi", "7.2. Çocuk Hukuku ve Koruma", "7.3. İhmal ve İstismar"]
-                    }
+                    { id: 1, title: "Gelişim ve Kuramlar", topics: ["Piaget, Vygotsky Bilişsel Gelişim", "Oyun Evreleri (Parten/Smilansky)", "Ahlak Gelişimi (Kohlberg)"] },
+                    { id: 2, title: "EÇE Yaklaşımları", topics: ["Montessori (Hazırlanmış Çevre)", "Reggio Emilia (Yüz Dil, Atölye)", "Waldorf, HighScope, Bank Street"] },
+                    { id: 3, title: "Kritik AGS Konuları", topics: ["Öğrenme (Koşullanmalar)", "ÖYT (Yapılandırmacılık)", "Mevzuat (1739 ve ÖMK)"] }
                 ]
             },
-            OABT_EGITIM: {
-                title: "ÖABT Okul Öncesi Alan Eğitimi",
-                color: "amber", 
+            OABT_ALAN_TEMEL: {
+                title: "📚 ÖABT Alan 1 (Temel Bilimler)",
+                color: "indigo",
                 units: [
-                    {
-                        id: 1, title: "Alan Eğitimi Temelleri", 
-                        topics: ["1.1. Okul Öncesinde Fen Eğitimi", "1.2. Okul Öncesinde Matematik Eğitimi", "1.3. Okul Öncesinde Görsel Sanatlar", "1.4. Okul Öncesinde Müzik Eğitimi"]
-                    },
-                    {
-                        id: 2, title: "Oyun ve Drama", 
-                        topics: ["2.1. Oyun Gelişimi ve Kuramları", "2.2. Yaratıcı Drama Aşamaları ve Teknikleri"]
-                    },
-                    {
-                        id: 3, title: "Program ve Planlama", 
-                        topics: ["3.1. Okula Uyum ve Erken Okuryazarlık", "3.2. Öğrenme Yaklaşımları ve Programlar", "3.3. Materyal Geliştirme"]
-                    }
+                    { id: 4, title: "Okul Öncesi Eğitime Giriş", topics: ["4.1. Temel Kavramlar ve İlkeler", "4.2. Türkiye'de ve Dünyada EÇE Tarihçesi", "4.3. Türk ve Dünya Düşünürleri (Rousseau, Froebel vb.)"] },
+                    { id: 5, title: "İnsan Anatomisi ve Fizyolojisi", topics: ["5.1. Hücre, Doku ve Organlar", "5.2. Hareket ve Sinir Sistemi", "5.3. Dolaşım ve Solunum Sistemi", "5.4. Sindirim, Boşaltım ve Endokrin Sistem"] },
+                    { id: 6, title: "Psikolojiye Giriş", topics: ["6.1. Psikolojinin Alt Dalları", "6.2. Temel Psikolojik Yaklaşımlar", "6.3. Duyum, Algı, Bellek ve Güdülenme"] },
+                    { id: 7, title: "Anne-Çocuk Sağlığı ve İlkyardım", topics: ["7.1. Gebelik, Doğum Öncesi ve Sonrası", "7.2. Büyüme ve Gelişme Ölçütleri", "7.3. Çocuk Hastalıkları, Aşılar ve Beslenme", "7.4. Temel İlkyardım ve Acil Durumlar"] },
+                    { id: 8, title: "Erken Çocuklukta Gelişim", topics: ["8.1. Fiziksel ve Motor Gelişim", "8.2. Bilişsel ve Dil Gelişimi", "8.3. Sosyal, Duygusal ve Ahlak Gelişimi", "8.4. Cinsel Gelişim"] }
                 ]
             },
-            AGS: {
-                title: "Akademi Giriş Sınavı (AGS)",
-                color: "sky", 
+            OABT_ALAN_UYGULAMA: {
+                title: "🎨 ÖABT Alan 2 (Uygulama ve Kuram)",
+                color: "purple",
                 units: [
-                    {
-                        id: 1, title: "Sözel Yetenek", 
-                        topics: ["1.1. Sözcükte Anlam", "1.2. Cümlede Anlam", "1.3. Paragrafta Anlam", "1.4. Sözel Mantık"]
-                    },
-                    {
-                        id: 2, title: "Sayısal Yetenek", 
-                        topics: ["2.1. Temel Matematik", "2.2. Problemler", "2.3. Sayısal Mantık", "2.4. Grafik ve Tablo Yorumlama"]
-                    },
-                    {
-                        id: 3, title: "Tarih", 
-                        topics: ["3.1. İslamiyet Öncesi Türk Tarihi", "3.2. Türk-İslam Tarihi", "3.3. Osmanlı Tarihi", "3.4. İnkılap Tarihi", "3.5. Çağdaş Türk ve Dünya Tarihi"]
-                    },
-                    {
-                        id: 4, title: "Coğrafya", 
-                        topics: ["4.1. Türkiye Fiziki Coğrafyası", "4.2. Türkiye Beşeri Coğrafyası", "4.3. Türkiye Ekonomik Coğrafyası"]
-                    },
-                    {
-                        id: 5, title: "Eğitim Bilimleri", 
-                        topics: ["5.1. Gelişim Psikolojisi", "5.2. Öğrenme Psikolojisi", "5.3. Öğretim Yöntem ve Teknikleri", "5.4. Ölçme ve Değerlendirme", "5.5. Program Geliştirme", "5.6. Rehberlik"]
-                    },
-                    {
-                        id: 6, title: "Mevzuat", 
-                        topics: ["6.1. Temel Hukuk ve Anayasa", "6.2. 1739 Sayılı Milli Eğitim Temel Kanunu", "6.3. 222 Sayılı İlköğretim Kanunu", "6.4. Öğretmenlik Mesleği Kanunu"]
-                    }
+                    { id: 9, title: "Çocukta Oyun Gelişimi", topics: ["9.1. Klasik ve Çağdaş Oyun Kuramları", "9.2. Oyunun Gelişim Evreleri", "9.3. Oyuncaklar, Oyun Alanları ve Rolleri"] },
+                    { id: 10, title: "Çocuk Edebiyatı", topics: ["10.1. Edebi Türler (Masal, Fabl, Bilmece)", "10.2. Nitelikli Çocuk Kitabı Özellikleri (İç/Dış Yapı)", "10.3. Gelişim Evrelerine Göre Kitap Seçimi"] },
+                    { id: 11, title: "Çocuk Ruh Sağlığı", topics: ["11.1. Savunma Mekanizmaları", "11.2. Uyum ve Davranış Bozuklukları (Tırnak Yeme, Kekemelik vb.)", "11.3. Özel Gereksinimli Çocuklar (Otizm, DEHB)"] },
+                    { id: 12, title: "EÇE Kuram ve Yaklaşımları", topics: ["12.1. Montessori ve Waldorf", "12.2. Reggio Emilia ve HighScope", "12.3. Bank Street, Head Start ve Proje Yaklaşımı"] },
+                    { id: 13, title: "Anne-Baba Eğitimi", topics: ["13.1. Aile İçi İletişim ve Ebeveynlik Stilleri", "13.2. Aile Katılım Çalışmaları ve Modelleri"] }
+                ]
+            },
+            OABT_ALAN_EGITIMI: {
+                title: "🎓 ÖABT Alan Eğitimi",
+                color: "emerald",
+                units: [
+                    { id: 14, title: "Fen ve Matematik Eğitimi", topics: ["14.1. Erken Matematik (Sayı, Sınıflama, Örüntü)", "14.2. Bilimsel Süreç Becerileri (Gözlem, Ölçme)", "14.3. Fen ve Doğa Etkinlikleri (Deney, Gezi)"] },
+                    { id: 15, title: "Müzik ve Görsel Sanatlar", topics: ["15.1. Müzik Yaklaşımları (Orff, Dalcroze, Kodaly, Suzuki)", "15.2. Sanatsal Gelişim Evreleri (Karalama, Şema Öncesi)", "15.3. Temel Sanat Teknikleri"] },
+                    { id: 16, title: "Beden Eğitimi ve Yaratıcı Drama", topics: ["16.1. Temel Hareket Becerileri (Lokomotor, Non-Lokomotor)", "16.2. Yaratıcı Dramanın Aşamaları (Isınma, Canlandırma, Değerlendirme)", "16.3. Drama Teknikleri (Rol Oynama, Doğaçlama, Sıcak Sandalye)"] },
+                    { id: 17, title: "Program ve Erken Okuryazarlık", topics: ["17.1. Güncel MEB OÖE Programı (İlkeler, Planlama)", "17.2. Okula Hazırbulunuşluk (Metropolitan, AGTE)", "17.3. Sesbilgisel Farkındalık ve Okuma Yazmaya Hazırlık"] }
+                ]
+            },
+            AGS_TARIH_COGRAFYA: {
+                title: "🌍 AGS (Tarih & Coğrafya)",
+                color: "sky",
+                units: [
+                    { id: 18, title: "Türkiye Tarihi", topics: ["18.1. İslamiyet Öncesi Türk Devletleri", "18.2. İlk Türk-İslam Devletleri", "18.3. Osmanlı Devleti (Siyasi, Kültür ve Medeniyet)", "18.4. İnkılap Tarihi (Milli Mücadele Dönemi)", "18.5. Çağdaş Türk ve Dünya Tarihi"] },
+                    { id: 19, title: "Türkiye Coğrafyası", topics: ["19.1. Türkiye'nin Coğrafi Konumu ve Yer Şekilleri", "19.2. İklim, Su, Toprak ve Bitki Örtüsü", "19.3. Nüfus, Yerleşme ve Göç", "19.4. Ekonomik Coğrafya (Tarım, Hayvancılık, Madenler, Sanayi)", "19.5. Ulaşım, Ticaret, Turizm ve Bölgesel Kalkınma Projeleri"] }
+                ]
+            },
+            AGS_VATANDASLIK_TURKCE_MAT: {
+                title: "⚖️ AGS (Vatandaşlık & Türkçe & Mat)",
+                color: "orange",
+                units: [
+                    { id: 20, title: "Vatandaşlık ve Anayasa", topics: ["20.1. Hukukun Temel Kavramları", "20.2. Devlet Biçimleri ve Demokrasi Tarihi", "20.3. 1982 Anayasası (Temel Hak ve Ödevler)", "20.4. Yasama, Yürütme ve Yargı Organları", "20.5. İdare Hukuku ve Uluslararası Kuruluşlar"] },
+                    { id: 21, title: "Türkçe ve Genel Yetenek", topics: ["21.1. Sözcükte, Cümlede ve Paragrafta Anlam", "21.2. Ses Bilgisi, Dil Bilgisi ve Yazım Kuralları", "21.3. Sözel Mantık ve Akıl Yürütme"] },
+                    { id: 22, title: "Matematik ve Geometri", topics: ["22.1. Temel Kavramlar, Rasyonel Sayılar ve Üslü/Köklü İfadeler", "22.2. Denklemler, Oran-Orantı ve Problemler", "22.3. Sayısal Mantık, Tablo ve Grafik Okuma", "22.4. Temel Geometri (Açılar, Üçgenler, Çokgenler)"] }
+                ]
+            },
+            AGS_EGITIM_MEVZUAT: {
+                title: "🧠 Eğitim Bilimleri ve Mevzuat",
+                color: "teal",
+                units: [
+                    { id: 23, title: "Öğrenme ve Öğretim", topics: ["23.1. Öğrenme Psikolojisi (Temel Kavramlar ve Kuramlar)", "23.2. Öğretim İlke ve Yöntemleri (ÖYT Modelleri)", "23.3. Sınıf Yönetimi ve Öğretim Teknolojileri/Materyal Tasarımı"] },
+                    { id: 24, title: "Ölçme, Değerlendirme ve Rehberlik", topics: ["24.1. Ölçme ve Değerlendirme (Geçerlik, Güvenirlik, Madde Analizi)", "24.2. Rehberlik ve Özel Eğitim (Hizmet Alanları, Bireyi Tanıma)"] },
+                    { id: 25, title: "Eğitim Mevzuatı", topics: ["25.1. 1739 Sayılı Milli Eğitim Temel Kanunu", "25.2. 657 Sayılı Devlet Memurları Kanunu", "25.3. Öğretmenlik Mesleği Kanunu (ÖMK) ve Güncel Değişiklikler"] }
                 ]
             }
         };
@@ -142,174 +140,148 @@
 
         const callGoogle = async (apiKey, modelName, prompt, type = 'json') => {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-            
-            const requestBody = {
-                contents: [{ parts: [{ text: prompt }] }]
-            };
-
-            if (type === 'json') {
-                requestBody.generationConfig = { responseMimeType: "application/json" };
-            }
-
             try {
-                const response = await fetch(url, { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify(requestBody) 
-                });
-                
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
                 const data = await response.json();
                 if (data.error) throw new Error(data.error.message);
-                
                 let text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (!text) throw new Error("Cevap boş.");
+                if (!text) throw new Error("Cevap boş döndü.");
                 
-                if (type === 'html') return text;
+                if (type === 'html') {
+                    // HTML bozulmalarını temizle
+                    return text.replace(/```html/g, '').replace(/```/g, '').trim();
+                }
                 
+                // JSON Temizleme (Çok daha sıkı)
                 text = text.replace(/```json/g, '').replace(/```/g, '').trim();
                 const s = text.indexOf('['); const e = text.lastIndexOf(']');
                 if (s !== -1 && e !== -1) text = text.substring(s, e+1);
                 
                 return JSON.parse(text);
             } catch (e) { 
-                console.error(e); 
-                throw e; 
+                console.error("Yapay Zeka Hatası:", e); 
+                throw new Error("Sistem yanıtı çözemedi, lütfen tekrar deneyin."); 
             }
         };
 
         // --- COMPONENTS ---
 
-        const Dashboard = ({ apiKey, setApiKey, modelName, setModelName, changeView, daysLeft, openNotebook }) => {
+     const Dashboard = ({ apiKey, setApiKey, changeView, daysLeft, openNotebook, onSearch }) => {
             const [keyInput, setKeyInput] = useState(apiKey || "");
-            const [modelInput, setModelInput] = useState(modelName || "gemini-2.5-flash-preview-09-2025");
             const [keyStatus, setKeyStatus] = useState(apiKey ? 'valid' : 'idle'); 
+            const [searchTerm, setSearchTerm] = useState("");
+            
+            const [models, setModels] = useState(() => {
+                const saved = localStorage.getItem('baris_models_list');
+                return saved ? JSON.parse(saved) : [
+                    { id: "gemini-2.0-flash-exp", label: "Gemini 2.0 Flash (Hızlı)" },
+                    { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro (Detaylı)" },
+                    { id: "gemini-1.5-flash", label: "Gemini 1.5 Flash" }
+                ];
+            });
+            const [selectedModel, setSelectedModel] = useState(localStorage.getItem('baris_model') || "gemini-2.0-flash-exp");
 
-            const saveKey = async () => { 
-                if(!keyInput.trim() || !modelInput.trim()) return alert("Lütfen anahtarı ve modeli eksiksiz girin!");
-                
-                setKeyStatus('checking');
-                try {
-                    await callGoogle(keyInput.trim(), modelInput.trim(), "Merhaba", "html");
-                    
-                    localStorage.setItem("baris_key", keyInput.trim()); 
-                    localStorage.setItem("baris_model", modelInput.trim()); 
-                    setApiKey(keyInput.trim()); 
-                    setModelName(modelInput.trim());
-                    setKeyStatus('valid');
-                    alert("Ayarlar Doğrulandı ve Kaydedildi! ✅"); 
-                } catch (error) {
-                    setKeyStatus('invalid');
-                    alert("Anahtar veya Model hatalı! ❌");
+            const handleModelChange = (e) => {
+                const val = e.target.value;
+                if (val === "add_new") {
+                    const newModel = prompt("Eklenecek modelin tam kodunu girin:\n(Örn: gemini-2.5-pro-exp)");
+                    if (newModel && newModel.trim() !== "") {
+                        const newObj = { id: newModel.trim(), label: newModel.trim() };
+                        const updatedList = [...models, newObj];
+                        setModels(updatedList);
+                        localStorage.setItem('baris_models_list', JSON.stringify(updatedList));
+                        setSelectedModel(newObj.id);
+                        localStorage.setItem('baris_model', newObj.id);
+                    } else { e.target.value = selectedModel; }
+                } else {
+                    setSelectedModel(val);
+                    localStorage.setItem('baris_model', val);
                 }
             };
 
-            const getBorderColor = () => {
-                if(keyStatus === 'valid') return 'border-emerald-500 bg-emerald-50';
-                if(keyStatus === 'invalid') return 'border-red-500 bg-red-50';
-                if(keyStatus === 'checking') return 'border-yellow-500 bg-yellow-50';
-                return 'border-orange-200 bg-orange-50'; 
+            const saveKey = () => { 
+                const val = keyInput.trim();
+                if(!val) return alert("Lütfen anahtarı kutuya yapıştır!");
+                if(!val.startsWith("AIza")) { setKeyStatus('invalid'); return alert("Hatalı format!"); }
+                localStorage.setItem("baris_key", val); setApiKey(val); setKeyStatus('valid');
             };
 
             return (
-                <div className="h-full overflow-y-auto p-6 flex flex-col items-center max-w-5xl mx-auto anim-fade">
-                    <div className="text-center mb-8 mt-4">
-                        <div className="bg-indigo-100 text-indigo-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm"><Icon name="crown" size={32}/></div>
-                        <h1 className="text-5xl font-black text-slate-800 brand tracking-tighter">BARIŞ AKADEMİ</h1>
-                        <p className="text-indigo-600 font-bold text-lg tracking-widest uppercase opacity-80">2026 Atanma Sürümü</p>
+                <div className="h-full overflow-y-auto p-4 md:p-8 flex flex-col items-center max-w-6xl mx-auto anim-fade">
+                    
+                    {/* ZARİF VE KÜÇÜK AYARLAR ÇUBUĞU */}
+                    <div className="w-full flex flex-col md:flex-row items-center justify-between bg-white rounded-2xl p-3 shadow-sm border border-slate-200 mb-8 gap-4">
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <div className="bg-indigo-100 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center shrink-0"><Icon name="crown" size={20}/></div>
+                            <div>
+                                <h1 className="text-xl font-black text-slate-800 brand leading-none">BARIŞ AKADEMİ</h1>
+                                <div className="text-indigo-600 font-bold text-[10px] tracking-widest uppercase opacity-80">2026 Efsane Sürüm</div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto bg-slate-50 p-2 rounded-xl border border-slate-200">
+                            <Icon name="settings" size={16} className="text-slate-400 hidden md:block ml-2"/>
+                            <input value={keyInput} onChange={e=>{setKeyInput(e.target.value); setKeyStatus('idle');}} type="password" placeholder="API Anahtarı" className="w-full md:w-48 bg-transparent text-sm font-mono outline-none border-b md:border-b-0 md:border-r border-slate-200 p-1 md:pr-2"/>
+                            <select className="w-full md:w-auto bg-transparent text-sm font-bold text-slate-600 outline-none p-1 cursor-pointer" onChange={handleModelChange} value={selectedModel}>
+                                {models.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                                <option value="add_new">➕ Yeni Ekle...</option>
+                            </select>
+                            <button onClick={saveKey} className={`w-full md:w-auto px-4 py-1.5 rounded-lg text-sm font-bold text-white transition ${keyStatus==='valid'?'bg-emerald-500':'bg-slate-800 hover:bg-slate-700'}`}>
+                                {keyStatus==='valid' ? 'AKTİF ✅' : 'KAYDET'}
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                        {/* SAYAÇ */}
-                        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2rem] p-8 text-white shadow-xl relative overflow-hidden flex flex-col justify-between h-56">
-                            <div>
-                                <div className="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-2">Sınava Kalan Süre</div>
-                                <div className="text-7xl font-black brand">{daysLeft}</div>
-                                <div className="text-indigo-100 font-bold mt-1">GÜN KALDI</div>
+                    {/* SAYAÇ VE BÜYÜK ARAMA MOTORU */}
+                    <div className="w-full grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
+                        <div className="md:col-span-1 bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden flex flex-col justify-center items-center h-32">
+                            <div className="z-10 text-center mt-2">
+                                <div className="text-indigo-200 text-[11px] font-bold uppercase tracking-widest mb-1">Sınava Kalan</div>
+                                <div className="flex items-baseline justify-center gap-1">
+                                    <div className="text-5xl font-black brand">{daysLeft}</div>
+                                    <div className="text-indigo-100 font-bold text-sm">GÜN</div>
+                                </div>
                             </div>
-                            <Icon name="calendar-clock" size={140} className="absolute -right-8 -bottom-8 opacity-10 rotate-12"/>
+                            <Icon name="calendar-clock" size={90} className="absolute -right-4 -bottom-6 opacity-10 rotate-12 z-0"/>
                         </div>
                         
-                        {/* ANAHTAR VE MODEL GİRİŞİ */}
-                        <div className={`rounded-[2rem] p-6 shadow-xl border-4 flex flex-col justify-center h-56 relative overflow-hidden transition-colors duration-300 ${getBorderColor()}`}>
-                            {!apiKey ? (
-                                <div className="z-10 w-full">
-                                    <div className="flex items-center gap-2 text-slate-700 font-black text-xl mb-3">
-                                        <Icon name="settings"/> 
-                                        {keyStatus === 'invalid' ? <span className="text-red-600">Hatalı Giriş!</span> : 'SİSTEM AYARLARI'}
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <input 
-                                            value={keyInput} 
-                                            onChange={e=>setKeyInput(e.target.value)} 
-                                            className="w-full p-3 bg-white border-2 border-slate-200 rounded-xl font-mono text-sm outline-none focus:border-indigo-500 transition shadow-inner" 
-                                            placeholder="Google API Anahtarı (AIzaSy...)"
-                                            disabled={keyStatus === 'checking'}
-                                        />
-                                        <div className="flex gap-2">
-                                            <input 
-                                                value={modelInput} 
-                                                onChange={e=>setModelInput(e.target.value)} 
-                                                className="flex-1 p-3 bg-white border-2 border-slate-200 rounded-xl font-mono text-xs outline-none focus:border-indigo-500 transition shadow-inner" 
-                                                placeholder="Model Adı"
-                                                disabled={keyStatus === 'checking'}
-                                            />
-                                            <button 
-                                                onClick={saveKey} 
-                                                disabled={keyStatus === 'checking'}
-                                                className="bg-slate-800 text-white px-5 rounded-xl font-bold shadow-md hover:bg-black active:scale-95 transition flex items-center whitespace-nowrap"
-                                            >
-                                                {keyStatus === 'checking' ? '...' : 'KAYDET'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-center z-10">
-                                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 animate-pulse"><Icon name="check" size={32}/></div>
-                                    <div className="font-bold text-emerald-600 text-xl">Sistem Aktif & Hazır</div>
-                                    <div className="text-xs text-slate-500 mt-1 font-mono">Model: {modelName}</div>
-                                    <button onClick={()=>{setApiKey(""); setKeyStatus('idle');}} className="text-xs text-slate-400 font-bold hover:text-red-500 underline mt-2">Ayarları Değiştir</button>
-                                </div>
-                            )}
+                        <div className="md:col-span-3 relative flex items-center bg-white rounded-[2rem] shadow-xl border-4 border-indigo-50 overflow-hidden h-32 p-3">
+                            <Icon name="search" size={32} className="text-indigo-400 absolute left-6 hidden md:block"/>
+                            <input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} onKeyDown={e=>e.key==='Enter'&&onSearch(searchTerm)} placeholder="ÖABT & AGS Arama Motoru..." className="w-full h-full md:pl-16 pr-24 md:pr-32 text-lg md:text-2xl font-bold text-slate-700 placeholder:text-slate-300 outline-none bg-transparent"/>
+                            <button onClick={()=>onSearch(searchTerm)} className="absolute right-4 bg-indigo-600 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl font-black text-lg hover:bg-indigo-700 shadow-md active:scale-95 transition">ARA</button>
                         </div>
                     </div>
 
-                    {/* ANA MENÜ BİLEŞENLERİ */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full">
-                        <button onClick={()=>changeView('syllabus')} className="bg-white p-6 rounded-3xl shadow-lg border-2 border-transparent hover:border-indigo-500 hover:shadow-indigo-100 transition group flex flex-col items-center gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                        <button onClick={()=>changeView('syllabus')} className="bg-white p-6 rounded-[2rem] shadow-lg border-2 border-transparent hover:border-indigo-500 transition group flex flex-col items-center gap-3">
                             <div className="bg-indigo-100 text-indigo-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="book-open-check" size={32}/></div>
                             <span className="font-bold text-slate-700 text-lg">Ders & Müfredat</span>
                         </button>
-                        <button onClick={()=>changeView('trial_setup')} className="bg-white p-6 rounded-3xl shadow-lg border-2 border-transparent hover:border-emerald-500 hover:shadow-emerald-100 transition group flex flex-col items-center gap-3">
+                        <button onClick={()=>changeView('trial_setup')} className="bg-white p-6 rounded-[2rem] shadow-lg border-2 border-transparent hover:border-emerald-500 transition group flex flex-col items-center gap-3">
                             <div className="bg-emerald-100 text-emerald-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="file-badge" size={32}/></div>
                             <span className="font-bold text-slate-700 text-lg">Deneme Ol</span>
                         </button>
-                        <button onClick={openNotebook} className="bg-white p-6 rounded-3xl shadow-lg border-2 border-transparent hover:border-amber-500 hover:shadow-amber-100 transition group flex flex-col items-center gap-3">
+                        <button onClick={openNotebook} className="bg-white p-6 rounded-[2rem] shadow-lg border-2 border-transparent hover:border-amber-500 transition group flex flex-col items-center gap-3">
                             <div className="bg-amber-100 text-amber-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="notebook-pen" size={32}/></div>
                             <span className="font-bold text-slate-700 text-lg">Akıllı Defter</span>
                         </button>
-                        <button onClick={()=>changeView('errors')} className="bg-white p-6 rounded-3xl shadow-lg border-2 border-transparent hover:border-red-500 hover:shadow-red-100 transition group flex flex-col items-center gap-3">
+                        <button onClick={()=>changeView('errors')} className="bg-white p-6 rounded-[2rem] shadow-lg border-2 border-transparent hover:border-red-500 transition group flex flex-col items-center gap-3">
                             <div className="bg-red-100 text-red-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="alert-triangle" size={32}/></div>
                             <span className="font-bold text-slate-700 text-lg">Hata Defteri</span>
-                        </button>
-                        
-                        {/* YENİ EKLENEN KAZANDIRAN ÖZELLİKLER */}
-                        <button onClick={()=>changeView('pomodoro')} className="bg-white p-6 rounded-3xl shadow-lg border-2 border-transparent hover:border-rose-500 hover:shadow-rose-100 transition group flex flex-col items-center gap-3">
-                            <div className="bg-rose-100 text-rose-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="timer" size={32}/></div>
-                            <span className="font-bold text-slate-700 text-lg">Pomodoro</span>
-                        </button>
-                        <button onClick={()=>changeView('calculator')} className="bg-white p-6 rounded-3xl shadow-lg border-2 border-transparent hover:border-sky-500 hover:shadow-sky-100 transition group flex flex-col items-center gap-3">
-                            <div className="bg-sky-100 text-sky-600 p-4 rounded-2xl group-hover:scale-110 transition"><Icon name="calculator" size={32}/></div>
-                            <span className="font-bold text-slate-700 text-lg">Net Hesapla</span>
                         </button>
                     </div>
                 </div>
             );
         };
-
         const Syllabus = ({ apiKey, modelName, goBack, onAction }) => {
-            const [tab, setTab] = useState('OABT_ALAN');
+            const [tab, setTab] = useState('BANKO_2026');
             
+            const colors = {
+                'rose': 'bg-rose-600 text-white', 'rose-light': 'bg-rose-50 text-rose-700 border-rose-100',
+                'amber': 'bg-amber-500 text-white', 'amber-light': 'bg-amber-50 text-amber-700 border-amber-100',
+                'sky': 'bg-sky-600 text-white', 'sky-light': 'bg-sky-50 text-sky-700 border-sky-100'
+            };
+
             const activeColor = CURRICULUM[tab].color;
 
             return (
@@ -319,6 +291,7 @@
                         <h2 className="font-bold text-xl text-slate-800">Müfredat & Çalışma</h2>
                     </div>
                     
+                    {/* Sekmeler */}
                     <div className="p-4 flex gap-3 overflow-x-auto hide-scroll sticky top-0 z-10 bg-slate-50/95 backdrop-blur">
                         {Object.keys(CURRICULUM).map(k=>(
                             <button key={k} onClick={()=>setTab(k)} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition shadow-sm border-2 ${tab===k ? `border-${CURRICULUM[k].color}-500 bg-${CURRICULUM[k].color}-50 text-${CURRICULUM[k].color}-700` : 'bg-white text-slate-500 border-slate-200'}`}>
@@ -362,22 +335,14 @@
             );
         };
 
+        // ... (SmartNotebook, InfoModal, TeacherSelect, TrialSetup, Quiz, Flashcards - V47/48 ile aynı, sadece App'e entegre)
+        
         const SmartNotebook = ({ apiKey, modelName, close }) => {
             const [notes, setNotes] = useState(localStorage.getItem('baris_notebook') || "");
             const [processing, setProcessing] = useState(false);
             const [quizFromNotes, setQuizFromNotes] = useState(null);
-            
             const handleSave = (val) => { setNotes(val); localStorage.setItem('baris_notebook', val); };
-            
-            const polish = async () => { 
-                if(!notes.trim()) return; setProcessing(true); 
-                try { 
-                    const res = await callGoogle(apiKey, modelName, `Düzelt:\n${notes}`, 'html'); 
-                    handleSave(res.replace(/<[^>]*>?/gm, '')); 
-                    alert("Düzenlendi!"); 
-                } catch(e){} finally { setProcessing(false); } 
-            };
-            
+            const polish = async () => { if(!notes.trim()) return; setProcessing(true); try { const res = await callGoogle(apiKey, modelName, `Düzelt:\n${notes}`, 'html'); handleSave(res.replace(/<[^>]*>?/gm, '')); alert("Düzenlendi!"); } catch(e){} finally { setProcessing(false); } };
             const genQuiz = async () => { 
                 if(!notes.trim()) return; 
                 setProcessing(true); 
@@ -387,24 +352,8 @@
                     setQuizFromNotes(res); 
                 } catch(e){ alert("Hata oluştu."); } finally { setProcessing(false); } 
             };
-            
             if(quizFromNotes) return <div className="fixed inset-0 z-[90] bg-white"><Quiz questions={quizFromNotes} goBack={()=>setQuizFromNotes(null)} addToErrors={()=>{}} isNotebook={true}/></div>;
-            
-            return (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm anim-fade" onClick={close}>
-                    <div className="bg-white w-full max-w-3xl h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()}>
-                        <div className="p-4 bg-amber-400 text-amber-950 font-bold flex justify-between items-center">
-                            <span className="flex items-center gap-2"><Icon name="edit-3"/> Not Defterim</span>
-                            <button onClick={close}><Icon name="x"/></button>
-                        </div>
-                        <textarea value={notes} onChange={e=>handleSave(e.target.value)} className="flex-1 p-6 bg-amber-50 resize-none outline-none text-lg text-slate-700 leading-relaxed font-medium" placeholder="Buraya yaz..."></textarea>
-                        <div className="p-3 bg-white border-t flex gap-2">
-                            <button onClick={polish} disabled={processing} className="flex-1 bg-indigo-100 text-indigo-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Icon name="wand-2"/> Düzenle</button>
-                            <button onClick={genQuiz} disabled={processing} className="flex-1 bg-emerald-100 text-emerald-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Icon name="brain-circuit"/> Soru Üret</button>
-                        </div>
-                    </div>
-                </div>
-            );
+            return <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm anim-fade" onClick={close}><div className="bg-white w-full max-w-3xl h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()}><div className="p-4 bg-amber-400 text-amber-950 font-bold flex justify-between items-center"><span className="flex items-center gap-2"><Icon name="edit-3"/> Not Defterim</span><button onClick={close}><Icon name="x"/></button></div><textarea value={notes} onChange={e=>handleSave(e.target.value)} className="flex-1 p-6 bg-amber-50 resize-none outline-none text-lg text-slate-700 leading-relaxed font-medium" placeholder="Buraya yaz..."></textarea><div className="p-3 bg-white border-t flex gap-2"><button onClick={polish} disabled={processing} className="flex-1 bg-indigo-100 text-indigo-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Icon name="wand-2"/> Düzenle</button><button onClick={genQuiz} disabled={processing} className="flex-1 bg-emerald-100 text-emerald-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Icon name="brain-circuit"/> Soru Üret</button></div></div></div>;
         };
 
         const InfoModal = ({ data, close }) => (
@@ -460,12 +409,44 @@
                 if(i===q.ans) setScore(score+1); 
                 else addToErrors({q:q.q, w:q.opts[i], r:q.opts[q.ans], e:q.exp, t: isNotebook?"Defter":"Deneme"}); 
             };
-            
+
             return (
                 <div className="h-full flex flex-col bg-slate-50 p-6 anim-fade">
-                    <div className="flex justify-between items-center mb-6"><button onClick={goBack} className="text-slate-400 font-bold">Çıkış</button><div className="bg-white px-4 py-2 rounded-full font-bold shadow-sm text-indigo-600">{idx+1}/{questions.length}</div></div>
-                    <div className="flex-1 overflow-y-auto"><div className="bg-white p-8 rounded-3xl shadow-md border border-slate-100 mb-6"><p className="font-bold text-xl text-slate-800 leading-relaxed">{q.q}</p></div><div className="space-y-4">{q.opts.map((o,i)=><button key={i} onClick={()=>handleAns(i)} disabled={show} className={`w-full text-left p-5 rounded-2xl border-2 font-medium text-lg transition ${show?(i===q.ans?'border-emerald-500 bg-emerald-50 text-emerald-800':i!==q.ans&&'opacity-50'):'border-white bg-white hover:border-indigo-200'}`}>{o}</button>)}</div>{show && <div className="mt-8 p-6 bg-indigo-50 border border-indigo-100 rounded-3xl text-indigo-900 font-medium">{q.exp}</div>}</div>
-                    {show && <button onClick={()=>{if(idx<questions.length-1){setIdx(idx+1);setShow(false)}else{alert(`Sınav Bitti! Puan: ${score}`);goBack()}}} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold mt-4 shadow-lg text-lg">İleri</button>}
+                    <div className="flex justify-between items-center mb-6">
+                        <button onClick={goBack} className="text-slate-400 font-bold">Çıkış</button>
+                        <div className="bg-white px-4 py-2 rounded-full font-bold shadow-sm text-indigo-600">{idx+1}/{questions.length}</div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                        <div className="bg-white p-8 rounded-3xl shadow-md border border-slate-100 mb-6">
+                            <p className="font-bold text-xl text-slate-800 leading-relaxed">{q.q}</p>
+                        </div>
+                        <div className="space-y-4">
+                            {q.opts.map((o,i)=>
+                                <button key={i} onClick={()=>handleAns(i)} disabled={show} className={`w-full text-left p-5 rounded-2xl border-2 font-medium text-lg transition ${show?(i===q.ans?'border-emerald-500 bg-emerald-50 text-emerald-800':i!==q.ans&&'opacity-50'):'border-white bg-white hover:border-indigo-200'}`}>
+                                    {o}
+                                </button>
+                            )}
+                        </div>
+                        
+                        {/* YENİ: KONU ÖZETİ VE BANKO UYARISI */}
+                        {show && (
+                            <div className="mt-8 space-y-4 anim-fade">
+                                <div className={`p-6 border-2 rounded-3xl ${q.isBanko ? 'bg-rose-50 border-rose-200' : 'bg-indigo-50 border-indigo-200'}`}>
+                                    <div className={`font-black text-lg mb-3 flex items-center gap-2 ${q.isBanko ? 'text-rose-700' : 'text-indigo-700'}`}>
+                                        <Icon name={q.isBanko ? 'alert-octagon' : 'lightbulb'}/> 
+                                        {q.isBanko ? '🚨 DİKKAT! ÖSYM KESİN SORAR (BANKO BİLGİ)' : '💡 Çözüm & Detay'}
+                                    </div>
+                                    <div className="text-slate-800 font-medium mb-4">{q.exp}</div>
+                                    {q.summary && (
+                                        <div className="p-4 bg-white/60 rounded-xl text-sm border border-black/5 text-slate-700">
+                                            <strong className="text-slate-900">📌 Kısa Konu Özeti:</strong> {q.summary}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    {show && <button onClick={()=>{if(idx<questions.length-1){setIdx(idx+1);setShow(false)}else{alert(`Sınav Bitti! Puan: ${score}`);goBack()}}} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-bold mt-4 shadow-xl text-lg hover:bg-indigo-700 active:scale-95 transition">İleri</button>}
                 </div>
             );
         };
@@ -482,194 +463,109 @@
             );
         };
 
-        // YENİ ÖZELLİK: Pomodoro Çalışma Sayacı
-        const Pomodoro = ({ goBack }) => {
-            const [timeLeft, setTimeLeft] = useState(25 * 60);
-            const [isActive, setIsActive] = useState(false);
-            const [mode, setMode] = useState('work'); 
-
-            useEffect(() => {
-                let interval = null;
-                if (isActive && timeLeft > 0) {
-                    interval = setInterval(() => setTimeLeft(timeLeft - 1), 1000);
-                } else if (timeLeft === 0 && isActive) {
-                    setIsActive(false);
-                    alert(mode === 'work' ? 'Harika çalıştın! Şimdi mola zamanı.' : 'Mola bitti! Çalışmaya geri dönelim.');
-                    if(mode === 'work') { setMode('break'); setTimeLeft(5 * 60); }
-                    else { setMode('work'); setTimeLeft(25 * 60); }
-                }
-                return () => clearInterval(interval);
-            }, [isActive, timeLeft, mode]);
-
-            const toggle = () => setIsActive(!isActive);
-            const reset = () => { setIsActive(false); setTimeLeft(mode === 'work' ? 25 * 60 : 5 * 60); };
-
-            const mins = Math.floor(timeLeft / 60);
-            const secs = timeLeft % 60;
-
-            return (
-                <div className="h-full flex flex-col items-center justify-center p-6 bg-slate-50 anim-fade relative">
-                    <button onClick={goBack} className="absolute top-6 left-6 bg-white p-3 rounded-full shadow"><Icon name="arrow-left"/></button>
-                    <div className="bg-white p-10 rounded-[3rem] shadow-2xl text-center max-w-sm w-full border-4 border-rose-100">
-                        <Icon name="timer" size={48} className="mx-auto mb-4 text-rose-500" />
-                        <h2 className="text-3xl font-black text-slate-800 mb-8">{mode === 'work' ? 'ODAK ZAMANI' : 'MOLA ZAMANI'}</h2>
-                        <div className="text-7xl font-black text-rose-600 mb-8 brand">
-                            {mins.toString().padStart(2, '0')}:{secs.toString().padStart(2, '0')}
-                        </div>
-                        <div className="flex gap-4">
-                            <button onClick={toggle} className="flex-1 bg-rose-500 text-white py-4 rounded-2xl font-bold text-xl hover:bg-rose-600 transition shadow-lg">
-                                {isActive ? 'DURAKLAT' : 'BAŞLA'}
-                            </button>
-                            <button onClick={reset} className="bg-slate-200 text-slate-600 px-6 py-4 rounded-2xl font-bold hover:bg-slate-300 transition">
-                                <Icon name="rotate-ccw" />
-                            </button>
-                        </div>
-                        <div className="mt-8 flex gap-2 justify-center">
-                            <button onClick={()=>{setMode('work'); setTimeLeft(25*60); setIsActive(false);}} className={`px-4 py-2 rounded-xl font-bold ${mode==='work'?'bg-rose-100 text-rose-700':'text-slate-400'}`}>Çalışma (25d)</button>
-                            <button onClick={()=>{setMode('break'); setTimeLeft(5*60); setIsActive(false);}} className={`px-4 py-2 rounded-xl font-bold ${mode==='break'?'bg-blue-100 text-blue-700':'text-slate-400'}`}>Mola (5d)</button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // YENİ ÖZELLİK: P121 Net Hesaplayıcı
-        const ScoreCalculator = ({ goBack }) => {
-            const [scores, setScores] = useState({
-                gygk: { d: 0, y: 0 },
-                egitim: { d: 0, y: 0 },
-                oabt: { d: 0, y: 0 }
-            });
-
-            const calcNet = (d, y) => Math.max(0, d - (y / 4));
-
-            return (
-                <div className="h-full flex flex-col items-center p-6 bg-slate-50 anim-fade relative overflow-y-auto">
-                    <button onClick={goBack} className="absolute top-6 left-6 bg-white p-3 rounded-full shadow"><Icon name="arrow-left"/></button>
-                    <div className="w-full max-w-2xl mt-12 mb-8 text-center">
-                        <div className="bg-sky-100 text-sky-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm"><Icon name="calculator" size={32}/></div>
-                        <h2 className="text-3xl font-black text-slate-800">KPSS & ÖABT Net Hesaplama</h2>
-                        <p className="text-slate-500 mt-2 font-medium">Bu sene atanmak için hedeflerini belirle ve analiz et!</p>
-                    </div>
-
-                    <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden mb-12">
-                        {['gygk', 'egitim', 'oabt'].map((test) => (
-                            <div key={test} className="p-6 border-b border-slate-100 flex items-center justify-between gap-4 flex-wrap">
-                                <div className="w-full md:w-auto font-bold text-lg text-slate-700">
-                                    {test === 'gygk' ? 'Genel Kültür Yetenek (120 Soru)' : test === 'egitim' ? 'Eğitim Bilimleri (80 Soru)' : 'ÖABT Okul Öncesi (75 Soru)'}
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex flex-col">
-                                        <label className="text-xs text-emerald-600 font-bold mb-1">Doğru</label>
-                                        <input type="number" min="0" max="120" value={scores[test].d} onChange={e=>setScores({...scores, [test]:{...scores[test], d: parseInt(e.target.value)||0}})} className="w-20 p-2 border-2 border-emerald-200 rounded-xl text-center font-bold outline-none focus:border-emerald-500 bg-emerald-50" />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <label className="text-xs text-red-600 font-bold mb-1">Yanlış</label>
-                                        <input type="number" min="0" max="120" value={scores[test].y} onChange={e=>setScores({...scores, [test]:{...scores[test], y: parseInt(e.target.value)||0}})} className="w-20 p-2 border-2 border-red-200 rounded-xl text-center font-bold outline-none focus:border-red-500 bg-red-50" />
-                                    </div>
-                                    <div className="flex flex-col justify-end pb-2">
-                                        <div className="text-xl font-black text-indigo-600 w-16 text-right">{calcNet(scores[test].d, scores[test].y).toFixed(2)}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                        
-                        <div className="p-8 bg-slate-800 text-white flex justify-between items-center">
-                            <div>
-                                <div className="text-slate-400 font-bold uppercase tracking-wider text-sm">Tahmini Puan Türü</div>
-                                <div className="text-2xl font-black text-amber-400">P121 (ÖABT)</div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-slate-400 font-bold uppercase tracking-wider text-sm mb-1">Toplam Net</div>
-                                <div className="text-4xl font-black">
-                                    {(calcNet(scores.gygk.d, scores.gygk.y) + calcNet(scores.egitim.d, scores.egitim.y) + calcNet(scores.oabt.d, scores.oabt.y)).toFixed(2)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const App = () => {
+       const App = () => {
             const [view, setView] = useState('dashboard');
-            
-            // YENİ: Model state'i
-            const [modelName, setModelName] = useState(localStorage.getItem('baris_model') || "gemini-2.5-flash-preview-09-2025");
             const [apiKey, setApiKey] = useState(localStorage.getItem('baris_key'));
-            
             const [loading, setLoading] = useState(false);
             const [modalData, setModalData] = useState(null); 
             const [quizData, setQuizData] = useState([]);
             const [cardData, setCardData] = useState([]);
             const [errors, setErrors] = useState(JSON.parse(localStorage.getItem('baris_errors')||'[]'));
             const [notebook, setNotebook] = useState(false);
+            
+            // Barış Hoca'nın Motivasyon Deposu
+            const motivasyonSozleri = [
+                "Özel sektörü geride bırakacağın o güzel günlere çok az kaldı Barış Hocam!",
+                "Bugün çözdüğün her soru, yarınki atanma kararnamendir.",
+                "Yorulmak yok! O atama ekranında 'Yerleştirildiniz' yazısını göreceğiz.",
+                "KPSS bir zeka sınavı değil, sabır sınavıdır. Sabreden kazanır!",
+                "Şu an zor geliyor biliyorum, ama o sınıfın kapısından kadrolu öğretmen olarak gireceksin."
+            ];
+            const [quote, setQuote] = useState(motivasyonSozleri[0]);
 
-            // Sayaç: 12 Temmuz 2026
-            const daysLeft = Math.ceil((new Date('2026-07-12') - new Date()) / (1000 * 60 * 60 * 24));
+            const getSelectedModel = () => localStorage.getItem('baris_model') || "gemini-2.0-flash-exp";
+
+            // Sınav Günü Hesaplama (Kesin ve Hata Vermez - Eksiye düşmez)
+            const targetDate = new Date('2026-07-12T00:00:00+03:00');
+            const currentDate = new Date();
+            const daysLeft = Math.max(0, Math.ceil((targetDate - currentDate) / (1000 * 60 * 60 * 24)));
+            
             useEffect(()=>{localStorage.setItem('baris_errors', JSON.stringify(errors))},[errors]);
 
+            const handleSearch = async (term) => {
+                if(!apiKey) return alert("Anahtar giriniz!");
+                if(!term.trim()) return;
+                setLoading(true);
+                try {
+                    const prompt = `Sen KPSS 2026 ÖABT uzmanısın. Aranan terim: '${term}'. SADECE HTML FORMATINDA (Markdown kullanmadan) çok renkli, akılda kalıcı bir KAVRAM HARİTASI oluştur. <h3>, <p>, <ul>, <li>, <strong>, <em>, <mark> ve <table> etiketlerini bolca kullan. Mutlaka bir 'Hafıza Çivisi' (akılda kalıcı kodlama/kısaltma) veya 'ÖSYM Kesin Sorar' tablosu ekle. Metin siyah-beyaz ve sıkıcı olmasın, emojilerle destekle.`;
+                    const res = await callGoogle(apiKey, getSelectedModel(), prompt, 'html');
+                    setModalData({type:'info', title: `🔎 Arama Sonucu: ${term}`, content: res});
+                } catch(e) {
+                    alert("Arama başarısız oldu. Lütfen tekrar dene.");
+                } finally { setLoading(false); }
+            };
+
             const handleAction = async (type, topic) => {
-                if(!apiKey) return alert("Sistem ayarlarından API anahtarını giriniz!");
+                if(!apiKey) return alert("Anahtar giriniz!");
                 if(type==='video') { setModalData({type:'video', topic}); return; }
                 setLoading(true);
                 try {
-                    const prompt = type==='hap' ? `Konu: '${topic}'. KPSS için 5 kritik hap bilgi. HTML <strong>, <em> kullan.`:
-                                   type==='ozet' ? `Konu: '${topic}'. ÖABT detaylı özet. HTML <h3>, <strong> kullan.`:
-                                   type==='card' ? `Konu: '${topic}'. 10 kart. JSON Array.`:
-                                   `Konu: '${topic}'. 10 adet çoktan seçmeli soru hazırla. Zorluk: ÖABT/KPSS. Format: JSON Array olarak şu yapıda olsun: [{"q":"Soru metni","opts":["Seçenek1","Seçenek2","Seçenek3","Seçenek4","Seçenek5"],"ans":0,"exp":"Açıklama"}]. "ans" 0 ile 4 arasında sayı olmalı (0=A, 1=B...). Sadece JSON ver.`;
+                    const prompt = type==='hap' ? `Konu: '${topic}'. KPSS/ÖABT için en kritik 5 bilgiyi HTML formatında ver. Sıkıcı metin olmasın! <mark>, <strong>, <em> ve <table> etiketleri kullanarak renkli, emojili ve hafıza çivili (kodlamalı) bir liste yap. Asla Markdown kullanma.` :
+                                   type==='ozet' ? `Konu: '${topic}'. KPSS/ÖABT için çok net ve detaylı bir özet çıkar. SADECE HTML formatında ver. Bolca <mark> (vurgu), <strong>, <em> ve karşılaştırma için <table> kullan. Bir bölüm mutlaka 'ÖSYM Nasıl Sorar? (Hafıza Teknikleri)' olsun. Emojiler kullan. Markdown yasak.` :
+                                   type==='card' ? `Konu: '${topic}'. Sınavda sorulabilecek 10 adet çalışma kartı hazırla. SADECE JSON ARRAY GÖNDER. Başka kelime yazma. Format: [{"front":"Kavram Adı","back":"Açıklaması"}]` :
+                                   `Konu: '${topic}'. Tam KPSS zorluğunda 10 adet çoktan seçmeli soru yaz. SADECE JSON GÖNDER. Format: [{"q":"Soru metni","opts":["A) ","B) ","C) ","D) ","E) "],"ans":0,"exp":"Doğru yanıt açıklaması","summary":"Hafıza çivili çok kısa konu özeti","isBanko":true veya false}]`;
                     
-                    // YENİ: modelName parametresi ile istek atılıyor
-                    const res = await callGoogle(apiKey, modelName, prompt + (type==='card'||type==='test'?'': ' HTML formatında ver.'), type==='card'||type==='test'?'json':'html');
+                    const res = await callGoogle(apiKey, getSelectedModel(), prompt, type==='card'||type==='test'?'json':'html');
                     
                     if(type==='hap'||type==='ozet') setModalData({type:'info', title:topic, content:res});
                     else if(type==='card') { setCardData(res); setView('flashcards'); }
                     else { setQuizData(res); setView('quiz'); }
-                } catch(e) { alert("Bir hata oluştu. Lütfen tekrar dene."); console.error(e); } finally { setLoading(false); }
+                } catch(e) { 
+                    alert("Ağ yoğunluğu nedeniyle küçük bir takılma oldu. Lütfen tekrar tıkla Barış Hocam!"); 
+                    console.error(e); 
+                } finally { setLoading(false); }
             };
 
             const startTrial = async (conf) => {
-                if(!apiKey) return alert("Sistem ayarlarından API anahtarını giriniz!"); 
-                setLoading(true);
+                if(!apiKey) return alert("Anahtar giriniz!"); setLoading(true);
+                setQuote(motivasyonSozleri[Math.floor(Math.random() * motivasyonSozleri.length)]);
                 try {
-                    const prompt = `KPSS/ÖABT ${conf.type} için ${conf.count} adet zor deneme sorusu. Format: JSON Array [{"q":"...","opts":["..."],"ans":0,"exp":"..."}]. Sadece JSON.`;
-                    // YENİ: modelName parametresi ile istek atılıyor
-                    const res = await callGoogle(apiKey, modelName, prompt, 'json');
+                    const prompt = `KPSS/ÖABT ${conf.type} alanı için zor ${conf.count} adet deneme sorusu hazırla. SADECE JSON GÖNDER. Format: [{"q":"Soru metni","opts":["A) ","B) ","C) ","D) ","E) "],"ans":0,"exp":"Açıklama","summary":"Konu özeti","isBanko":true veya false}]`;
+                    const res = await callGoogle(apiKey, getSelectedModel(), prompt, 'json');
                     setQuizData(res); setView('quiz');
-                } catch(e) { alert("Hata."); } finally { setLoading(false); }
+                } catch(e) { 
+                    alert("Sorular hazırlanırken bir bağlantı koptu. Lütfen tekrar 'Başlat'a bas."); 
+                } finally { setLoading(false); }
             };
 
             return (
                 <div className="h-screen bg-slate-50 text-slate-800 font-sans select-none">
-                    {loading && <div className="fixed inset-0 z-[100] bg-white/95 flex flex-col items-center justify-center"><div className="loader mb-6"></div><p className="font-bold text-indigo-600 animate-pulse text-xl">Atanmak İçin Hazırlanıyor...</p></div>}
+                    {loading && (
+                        <div className="fixed inset-0 z-[100] bg-white/95 flex flex-col items-center justify-center p-6 text-center">
+                            <div className="loader mb-6"></div>
+                            <p className="font-black text-indigo-600 text-2xl mb-4">Barış Hocam İçin Hazırlanıyor...</p>
+                            <p className="text-slate-500 font-bold text-lg max-w-md">"{quote}"</p>
+                            <span className="text-xs text-indigo-300 mt-4 uppercase tracking-widest">({getSelectedModel()})</span>
+                        </div>
+                    )}
                     
-                    {/* YENİ: notebook bileşenine modelName gönderildi */}
-                    {notebook && <SmartNotebook apiKey={apiKey} modelName={modelName} close={()=>setNotebook(false)}/>}
+                    {notebook && <SmartNotebook apiKey={apiKey} modelName={getSelectedModel()} close={()=>setNotebook(false)}/>}
                     {modalData?.type === 'info' && <InfoModal data={modalData} close={()=>setModalData(null)}/>}
                     {modalData?.type === 'video' && <TeacherSelectModal topic={modalData.topic} close={()=>setModalData(null)}/>}
 
-                    {/* YENİ: Dashboard'a model yönetimi prop'ları gönderildi */}
-                    {view === 'dashboard' && <Dashboard apiKey={apiKey} setApiKey={setApiKey} modelName={modelName} setModelName={setModelName} changeView={setView} daysLeft={daysLeft} openNotebook={()=>setNotebook(true)}/>}
+                    {/* DİKKAT: Arama motoru bağlantısı buraya eklendi (onSearch) */}
+                    {view === 'dashboard' && <Dashboard apiKey={apiKey} setApiKey={setApiKey} changeView={setView} daysLeft={daysLeft} openNotebook={()=>setNotebook(true)} onSearch={handleSearch}/>}
                     
-                    {/* YENİ: Syllabus bileşenine modelName gönderildi */}
-                    {view === 'syllabus' && <Syllabus apiKey={apiKey} modelName={modelName} goBack={()=>setView('dashboard')} onAction={handleAction}/>}
-                    
+                    {view === 'syllabus' && <Syllabus apiKey={apiKey} modelName={getSelectedModel()} goBack={()=>setView('dashboard')} onAction={handleAction}/>}
                     {view === 'trial_setup' && <TrialSetup goBack={()=>setView('dashboard')} startTrial={startTrial}/>}
                     {view === 'quiz' && <Quiz questions={quizData} goBack={()=>setView('dashboard')} addToErrors={err=>setErrors([err,...errors])} isNotebook={false}/>}
                     {view === 'flashcards' && <Flashcards cards={cardData} goBack={()=>setView('syllabus')}/>}
-                    
-                    {/* YENİ: Pomodoro ve Net Hesaplama Görünümleri */}
-                    {view === 'pomodoro' && <Pomodoro goBack={()=>setView('dashboard')} />}
-                    {view === 'calculator' && <ScoreCalculator goBack={()=>setView('dashboard')} />}
-
-                    {view === 'errors' && <div className="h-full p-6 flex flex-col max-w-3xl mx-auto"><div className="flex justify-between items-center mb-6"><button onClick={()=>setView('dashboard')} className="p-3 bg-white rounded-full shadow"><Icon name="arrow-left"/></button><h2 className="font-bold text-2xl text-red-600">Hatalar</h2><button className="bg-white px-4 py-2 font-bold rounded-xl shadow text-slate-500" onClick={()=>setErrors([])}>Temizle</button></div><div className="flex-1 overflow-y-auto space-y-4">{errors.map((e,i)=><div key={i} className="bg-white p-6 rounded-2xl border-l-8 border-red-500 shadow"><div className="font-bold">{e.q}</div><div className="text-red-600">Sen: {e.w}</div><div className="text-emerald-600">Doğru: {e.r}</div><div className="text-sm mt-2">{e.e}</div></div>)}</div></div>}
+                    {view === 'errors' && <div className="h-full p-6 flex flex-col max-w-3xl mx-auto"><div className="flex justify-between items-center mb-6"><button onClick={()=>setView('dashboard')}><Icon name="arrow-left"/></button><h2 className="font-bold text-2xl text-red-600">Hatalar</h2><button onClick={()=>setErrors([])}>Temizle</button></div><div className="flex-1 overflow-y-auto space-y-4">{errors.map((e,i)=><div key={i} className="bg-white p-6 rounded-2xl border-l-8 border-red-500 shadow"><div className="font-bold">{e.q}</div><div className="text-red-600">Sen: {e.w}</div><div className="text-emerald-600">Doğru: {e.r}</div><div className="text-sm mt-2">{e.e}</div></div>)}</div></div>}
                 </div>
             );
         };
-
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
 </body>
 </html>
-
