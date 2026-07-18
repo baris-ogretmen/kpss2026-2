@@ -50,7 +50,556 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel">
+    <!-- ===== ZİRVE API KATMANI · sınırsız anahtar + otomatik model + 503 dayanıklılığı ===== -->
+<script>
+/* ============================================================
+   ZİRVE API KATMANI  ·  çoklu anahtar + otomatik model + teşhis
+   Uygulamanın kendi kodu DEĞİŞTİRİLMEDİ. Bu katman fetch'i sarar;
+   generativelanguage.googleapis.com'a giden her isteği yakalar,
+   anahtarı/modeli kendisi seçer, kota dolunca devreye girer.
+   ============================================================ */
+(function(){
+"use strict";
+
+// ---------- Depolama ----------
+const LS = { keys:'zirve_keys', cool:'zirve_keycool', model:'baris_model', rpm:'zirve_rpm', legacy:'baris_key' };
+const RING = { keys:[], cool:{}, aktif:null };
+let MODEL = localStorage.getItem(LS.model) || 'gemini-2.5-flash';
+let RPM = parseInt(localStorage.getItem(LS.rpm)||'8',10);
+
+// Kotası kapanmış eski modelleri otomatik yükselt
+const OLU_MODELLER = ['gemini-2.0-flash','gemini-2.0-flash-exp','gemini-2.0-flash-lite','gemini-1.5-flash','gemini-1.5-pro','gemini-pro','gemini-exp-1206'];
+if (OLU_MODELLER.indexOf(MODEL) !== -1) { MODEL = 'gemini-2.5-flash'; localStorage.setItem(LS.model, MODEL); }
+
+function ringSet(list){ RING.keys = list.map(x=>String(x||'').trim()).filter(k=>k.length>8); }
+function ringLoad(){
+  try{ const r=localStorage.getItem(LS.keys); if(r) ringSet(JSON.parse(r)); }catch(e){}
+  if(!RING.keys.length){ const eski=localStorage.getItem(LS.legacy); if(eski) ringSet([eski]); }
+  try{ const c=localStorage.getItem(LS.cool); if(c) RING.cool=JSON.parse(c); }catch(e){}
+}
+function ringSave(){
+  try{
+    localStorage.setItem(LS.keys, JSON.stringify(RING.keys));
+    localStorage.setItem(LS.cool, JSON.stringify(RING.cool));
+    // Uygulamanın kendi kontrolü (if(!apiKey) return) için ilk anahtarı eski yere de yaz
+    if(RING.keys[0]) localStorage.setItem(LS.legacy, RING.keys[0]);
+  }catch(e){}
+}
+// Kota Google'da MODEL BAZINDA tutulur → dinlenme kaydı "model|anahtar"
+function coolKey(m,k){ return (m||'?')+'|'+k; }
+function ringHazir(m){ const n=Date.now(); return RING.keys.filter(k=>!(RING.cool[coolKey(m,k)]>n)); }
+function ringPick(m){
+  const h=ringHazir(m); if(!h.length) return null;
+  if(RING.aktif && h.indexOf(RING.aktif)!==-1) return RING.aktif;
+  RING.aktif=h[0]; return RING.aktif;
+}
+function ringNo(k){ return RING.keys.indexOf(k)+1; }
+function ringCool(key, mesaj, m){
+  const gunluk = /per day|PerDay|daily|GenerateRequestsPerDay/i.test(String(mesaj||''));
+  let ms = 70000;                                  // dakikalık kota → ~70 sn
+  if(gunluk){                                      // günlük kota → Pasifik gece yarısına kadar
+    const now=new Date();
+    const pt=new Date(now.toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));
+    const mid=new Date(pt); mid.setHours(24,0,0,0);
+    ms=Math.max(60000, mid-pt);
+  }
+  RING.cool[coolKey(m,key)] = Date.now()+ms; ringSave();
+  return gunluk;
+}
+function ringBekleme(m){
+  const n=Date.now(); let en=Infinity;
+  RING.keys.forEach(k=>{ const c=RING.cool[coolKey(m,k)]||0; if(c>n) en=Math.min(en,c-n); });
+  if(en===Infinity) return '';
+  const dk=Math.ceil(en/60000);
+  return dk>60 ? Math.ceil(dk/60)+' saat' : dk+' dakika';
+}
+
+// ---------- Yedek model zinciri ----------
+// Tercih sırası (hızlı/bol kotalı → yavaş/kısıtlı). Test Et'e basınca anahtarının
+// GERÇEKTEN erişebildiği modeller öğrenilir ve zincir ona göre kurulur; böylece
+// var olmayan bir model adına düşmeyiz.
+const MODEL_TERCIH = [
+  "gemini-2.5-flash-lite", "gemini-flash-lite-latest",
+  "gemini-2.5-flash", "gemini-flash-latest",
+  "gemini-2.0-flash-lite", "gemini-2.0-flash",
+  "gemini-2.5-pro", "gemini-pro-latest"
+];
+let KULLANILABILIR = [];
+try{ const r=localStorage.getItem('zirve_models'); if(r) KULLANILABILIR=JSON.parse(r)||[]; }catch(e){}
+
+function modelHavuzu(){
+  if(!KULLANILABILIR.length) return MODEL_TERCIH.slice();
+  const havuz = MODEL_TERCIH.filter(m => KULLANILABILIR.indexOf(m)!==-1);
+  // Listede olup tercihimizde olmayan flash modelleri de sona ekle (yeni çıkanlar için)
+  KULLANILABILIR.forEach(m=>{
+    if(havuz.indexOf(m)===-1 && /flash/.test(m) && !/thinking|exp|8b/.test(m)) havuz.push(m);
+  });
+  return havuz.length ? havuz : MODEL_TERCIH.slice();
+}
+function modelSonraki(simdiki, denenenler){
+  return modelHavuzu().find(m => m!==simdiki && denenenler.indexOf(m)===-1) || null;
+}
+
+// ---------- Hız sınırlayıcı (kotayı boşa harcamamak için) ----------
+const RL = { calisan:0, maxEs:2, gecmis:[] };
+function rpmLimit(){ return RPM; }
+async function rateGate(){
+  while(true){
+    const n=Date.now();
+    RL.gecmis = RL.gecmis.filter(t=>n-t<60000);
+    if(RL.calisan<RL.maxEs && RL.gecmis.length<rpmLimit()){ RL.calisan++; RL.gecmis.push(n); return; }
+    await new Promise(r=>setTimeout(r,250));
+  }
+}
+function rateRelease(){ RL.calisan=Math.max(0,RL.calisan-1); }
+
+// ---------- Model ailesine göre generationConfig düzeltmeleri ----------
+function aile(m){
+  m=String(m||'');
+  if(/gemini-3|gemini-flash-latest|gemini-flash-lite-latest|-latest$/.test(m)) return 'yeni';   // thinkingLevel ister
+  if(/2\.5-(flash|flash-lite)/.test(m)) return 'flash25';                                       // thinkingBudget ister
+  if(/pro/.test(m)) return 'pro';
+  return 'diger';
+}
+// Gövde dönüşümleri: sırayla denenir, çalışan hatırlanır.
+// ASIL ARIZA: Gemini 2.5+ modellerde "düşünme modu" varsayılan AÇIK. responseMimeType:json ve
+// maxOutputTokens:16000 ile istek atılınca bütçe düşünmeye gidiyor, JSON YARIDA KESİLİYOR,
+// uygulamanın JSON.parse'ı patlıyor ve hata catch{} ile yutulduğu için ekranda hiçbir şey olmuyor.
+// Aşağıdaki varyantlar düşünmeyi kapatır/asgariye indirir.
+function govdeVaryantlari(m){
+  const f=aile(m);
+  const temiz=(b)=>{ const c=JSON.parse(JSON.stringify(b)); if(c.generationConfig){ delete c.generationConfig.thinkingConfig; } return c; };
+  const dusunme=(b,cfg)=>{ const c=temiz(b); c.generationConfig=Object.assign({}, c.generationConfig, {thinkingConfig:cfg}); return c; };
+  // SON ÇARE: responseSchema'yı at. Şema devasa olduğunda model bazen tıkanıyor;
+  // uygulamanın promptu istenen JSON biçimini zaten ayrıntısıyla anlatıyor, o yüzden şemasız da çalışır.
+  const semasiz=(b,cfg)=>{ const c=dusunme(b,cfg); if(c.generationConfig) delete c.generationConfig.responseSchema; return c; };
+  if(f==='yeni') return [
+    (b)=>{ const c=dusunme(b,{thinkingLevel:"low"}); delete c.generationConfig.temperature; return c; },
+    (b)=>{ const c=semasiz(b,{thinkingLevel:"low"}); delete c.generationConfig.temperature; return c; },
+    (b)=>temiz(b), (b)=>b ];
+  if(f==='flash25') return [
+    (b)=>dusunme(b,{thinkingBudget:0}), (b)=>semasiz(b,{thinkingBudget:0}), (b)=>temiz(b), (b)=>b ];
+  if(f==='pro') return [
+    (b)=>dusunme(b,{thinkingBudget:128}), (b)=>semasiz(b,{thinkingBudget:128}), (b)=>temiz(b), (b)=>b ];
+  return [ (b)=>temiz(b), (b)=>b ];
+}
+const CFG_OK = {};   // model -> çalıştığı bilinen varyant
+
+// ---------- Zaman aşımlı istek (sonsuz bekleme yok) ----------
+const ZAMAN_ASIMI = 150000;   // 150 sn
+function fetchZamanAsimli(u, init){
+  const ac = new AbortController();
+  const t = setTimeout(()=>ac.abort(), ZAMAN_ASIMI);
+  return ORIG_FETCH(u, Object.assign({}, init, {signal: ac.signal})).finally(()=>clearTimeout(t));
+}
+
+// ---------- Google'ın gerçek hata mesajını oku ----------
+async function googleErr(r){
+  try{ const d=await r.clone().json(); return (d && d.error && d.error.message) || JSON.stringify(d).slice(0,200); }
+  catch(e){ try{ return (await r.clone().text()).slice(0,200); }catch(e2){ return 'HTTP '+r.status; } }
+}
+// ---------- Türkçe teşhis: sorun anahtarda mı, modelde mi, promptta mı? ----------
+function netHatasi(e){
+  const m=String((e&&e.message)||e||'');
+  if(/TUM_DOLU/i.test(m))
+    return 'SORUN: KOTA. Denenen tüm anahtar ve modellerin kotası dolu'+(m.split('·')[1]?' —'+m.split('·')[1]:'')+'. Anahtarların AYNI PROJEDEyse hepsi aynı kotayı paylaşır; ayrı Google Cloud projelerinde anahtar açarsan her biri kendi kotasını alır.';
+  if(/SAFETY|blockReason/i.test(m))
+    return 'SORUN: PROMPT. İçerik güvenlik filtresine takıldı. Metni yumuşatıp tekrar dene.';
+  if(/API key not valid|API_KEY_INVALID|INVALID_ARGUMENT.*key/i.test(m))
+    return 'SORUN: ANAHTAR. Anahtar geçersiz. aistudio.google.com/apikey adresinden yeni bir anahtar oluşturup yapıştır.';
+  if(/PERMISSION_DENIED|SERVICE_DISABLED|has not been used|is disabled/i.test(m))
+    return 'SORUN: ANAHTAR/PROJE. Generative Language API bu projede kapalı ya da anahtarın yetkisi yok. Google AI Studio\'da yeni anahtar oluştur.';
+  if(/referer|referrer|API_KEY_HTTP_REFERRER/i.test(m))
+    return 'SORUN: ANAHTAR KISITI. Anahtarına web sitesi (HTTP referrer) kısıtı konmuş; dosyayı bilgisayardan açtığın için engelliyor. Anahtar kısıtlamasını "Yok/None" yap.';
+  if(/not found|is not supported|Unknown name.*model|models\//i.test(m) && /404|not found|not supported/i.test(m))
+    return 'SORUN: MODEL. Bu model adı anahtarınla kullanılamıyor. "Test Et"e bas — çalışan modeli otomatik bulup seçerim.';
+  if(/Unknown name|Invalid JSON payload|INVALID_ARGUMENT/i.test(m))
+    return 'SORUN: İSTEK BİÇİMİ. Model bu parametreleri kabul etmiyor. Katman otomatik uyarlamayı deniyor; sürerse modeli gemini-2.5-flash yap.';
+  if(/50[0234]|UNAVAILABLE|high demand|overloaded|INTERNAL/i.test(m))
+    return 'SORUN: GOOGLE TARAFI (503). Model şu an aşırı yoğun. Senin anahtarınla, modelinle ya da yazdığın metinle İLGİSİ YOK — Google\'ın sunucusu geçici olarak dolu. Katman bekleyip tekrar denedi ve sırayla diğer modelleri denedi; hepsi doluysa 2-3 dakika sonra tekrar dene.';
+  if(/429|quota|RESOURCE_EXHAUSTED/i.test(m))
+    return 'SORUN: KOTA (429). Hız sınırını düşür ya da gemini-2.5-flash-lite dene. Günlük kota Pasifik saatiyle gece yarısı sıfırlanır.';
+  if(/aborted|AbortError|zaman aşımı/i.test(m))
+    return 'SORUN: SÜRE. Model 150 saniyede yanıt vermedi. Genelde çok uzun materyal istendiğinde olur: istediğin soru/etkinlik sayısını azalt ya da modeli gemini-2.5-flash yap.';
+  if(/Failed to fetch|NetworkError|ERR_/i.test(m))
+    return 'SORUN: BAĞLANTI. İnternete ulaşılamadı. Reklam engelleyici/VPN/güvenlik duvarı Google\'a erişimi kesiyor olabilir.';
+  if(/KESIK_JSON/i.test(m))
+    return 'SORUN: ÇIKTI KESİLDİ. Model JSON\'ı tamamlayamadı (istek çok büyük). İstediğin soru/blok sayısını azalt ya da modeli gemini-2.5-flash yap; katman bütçeyi büyütüp tekrar denedi ama yetmedi.';
+  if(/BOŞ_YANIT|MAX_TOKENS/i.test(m))
+    return 'SORUN: MODEL/ÇIKTI. Model boş ya da kesik yanıt döndü (düşünme modu çıktı bütçesini yiyor). Katman bunu otomatik kapatmayı denedi; sürerse gemini-2.5-flash-lite dene.';
+  return m || 'Bilinmeyen hata.';
+}
+
+// ---------- Ekrana bildirim ----------
+function toast(html, renk){
+  let t=document.getElementById('zirve-toast');
+  if(!t){
+    t=document.createElement('div'); t.id='zirve-toast';
+    t.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:86px;z-index:2147483000;max-width:min(560px,92vw);padding:12px 16px;border-radius:14px;font:600 13px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;box-shadow:0 12px 34px rgba(0,0,0,.22);border:2px solid;display:none';
+    document.body.appendChild(t);
+  }
+  t.innerHTML=html; t.style.display='block';
+  if(renk==='red'){ t.style.background='#fee2e2'; t.style.borderColor='#fca5a5'; t.style.color='#991b1b'; }
+  else if(renk==='green'){ t.style.background='#dcfce7'; t.style.borderColor='#86efac'; t.style.color='#166534'; }
+  else { t.style.background='#fffbeb'; t.style.borderColor='#fcd34d'; t.style.color='#92400e'; }
+  clearTimeout(toast._t); toast._t=setTimeout(()=>{ t.style.display='none'; }, renk==='red'?14000:9000);
+}
+
+// ---------- Anahtar doğrulama + otomatik model bulma ----------
+async function listModels(key){
+  const r=await ORIG_FETCH(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`);
+  if(!r.ok) throw new Error(await googleErr(r));
+  const d=await r.json();
+  return (d.models||[]).filter(m=>(m.supportedGenerationMethods||[]).indexOf('generateContent')!==-1)
+                       .map(m=>String(m.name||'').replace('models/',''));
+}
+function enIyiModel(list){
+  const tercih=["gemini-2.5-flash","gemini-2.5-flash-lite","gemini-flash-latest","gemini-flash-lite-latest","gemini-2.5-pro"];
+  for(const t of tercih) if(list.indexOf(t)!==-1) return t;
+  return list.find(m=>/flash/.test(m)) || list[0] || null;
+}
+
+// ============================================================
+//  FETCH SARMALAYICI — uygulamanın 15 çağrısı da buradan geçer
+// ============================================================
+const ORIG_FETCH = window.fetch.bind(window);
+
+function urlBilgi(u){
+  const m = /\/v1beta\/models\/([^:?]+)(:generateContent)?/.exec(u);
+  return { model: m?m[1]:null, uretim: !!(m&&m[2]) };
+}
+function urlKur(u, model, key){
+  return u.replace(/\/v1beta\/models\/[^:?]+/, '/v1beta/models/'+model)
+          .replace(/([?&])key=[^&]*/, '$1key='+encodeURIComponent(key));
+}
+
+window.fetch = async function(input, init){
+  const u = (typeof input==='string') ? input : (input && input.url) || '';
+  // Bizim ilgilendiğimiz istek değilse dokunma
+  if(!/generativelanguage\.googleapis\.com/.test(u)) return ORIG_FETCH(input, init);
+  if(!RING.keys.length){
+    toast('🔑 <b>Önce API anahtarı ekle.</b> Sağ alttaki <b>🔑 API</b> düğmesine bas, anahtarlarını yapıştır ve <b>Test Et</b>e tıkla.','red');
+    return ORIG_FETCH(input, init);   // uygulamanın kendi akışı bozulmasın
+  }
+
+  const bilgi = urlBilgi(u);
+  let model = MODEL || bilgi.model || 'gemini-2.5-flash';
+  const denenenModeller = [model];
+
+  // Gövde varyantları yalnızca üretim isteklerinde (POST) anlamlı
+  let govdeVar = (init && init.body) ? govdeVaryantlari(model) : [ (b)=>b ];
+  let vi = (CFG_OK[model]!==undefined) ? CFG_OK[model] : 0;
+  let orjGovde = null;
+  if(init && init.body){ try{ orjGovde = JSON.parse(init.body); }catch(e){ orjGovde=null; } }
+
+  const modelDegistir = ()=>{
+    const yeni = modelSonraki(model, denenenModeller);
+    if(!yeni) return false;
+    const eski = model;
+    model = yeni; denenenModeller.push(yeni);
+    MODEL = yeni; localStorage.setItem(LS.model, yeni);
+    if(init && init.body) govdeVar = govdeVaryantlari(model);
+    vi = (CFG_OK[model]!==undefined) ? CFG_OK[model] : 0;
+    RING.aktif = null;
+    panelYenile();
+    toast(`⚡ <b>${eski}</b> kotası tüm anahtarlarda doldu → <b>${yeni}</b> modeline geçildi.<br><span style="font-weight:700;font-size:.72rem">Google'da kota her model için ayrı tutulur; taze kotayla devam ediyorsun.</span>`);
+    return true;
+  };
+
+  let sonHata = null;
+  const yogunSayac = {};      // model -> kaç kez 503 aldı
+  let bekleme = 900;          // 503 sonrası bekleme (katlanarak artar)
+  for(let deneme=0; deneme<40; deneme++){
+    const key = ringPick(model);
+    if(!key){
+      if(modelDegistir()) continue;
+      const b = ringBekleme(model);
+      const msg = 'TUM_DOLU'+(b?' · en erken '+b+' sonra':'');
+      toast('🚫 '+netHatasi(new Error(msg)),'red');
+      sonHata = new Error(msg);
+      break;
+    }
+    const yeniUrl = urlKur(u, model, key);
+    const yeniInit = Object.assign({}, init);
+    if(orjGovde){
+      let g = orjGovde;
+      try{ g = govdeVar[Math.min(vi,govdeVar.length-1)](orjGovde); }catch(e){ g = orjGovde; }
+      yeniInit.body = JSON.stringify(g);
+    }
+
+    await rateGate();
+    let r;
+    try{ r = await fetchZamanAsimli(yeniUrl, yeniInit); }
+    catch(e){ rateRelease(); toast('🌐 '+netHatasi(e),'red'); throw e; }
+    rateRelease();
+
+    // --- 429: anahtar değiştir, olmazsa model değiştir ---
+    if(r.status===429){
+      const em = await googleErr(r);
+      const eskiNo = ringNo(key);
+      const gunluk = ringCool(key, em, model);
+      const kalan = ringHazir(model);
+      RING.aktif = kalan[0] || null;
+      panelYenile();
+      if(RING.aktif){
+        toast(`🔑 <b>${eskiNo}. anahtarın ${gunluk?'GÜNLÜK':'dakikalık'} kotası doldu</b> → <b>${ringNo(RING.aktif)}. anahtara</b> geçildi.<br><span style="font-weight:700;font-size:.72rem">Hazır anahtar: ${kalan.length}/${RING.keys.length}${gunluk?' · Günlük kota Pasifik gece yarısı sıfırlanır.':''}</span>`);
+        continue;
+      }
+      if(modelDegistir()) continue;
+      const b=ringBekleme(model);
+      sonHata = new Error('TUM_DOLU'+(b?' · en erken '+b+' sonra':''));
+      toast('🚫 '+netHatasi(sonHata),'red');
+      break;
+    }
+
+    // --- 400: parametre uyumsuzluğu → sonraki gövde varyantı ---
+    if(r.status===400 && orjGovde && vi < govdeVar.length-1){ vi++; continue; }
+
+    // --- 503/500/502/504: Google'ın sunucusu yoğun. Anahtarla ilgisi YOK. ---
+    if(r.status===503 || r.status===500 || r.status===502 || r.status===504){
+      const em = await googleErr(r);
+      yogunSayac[model] = (yogunSayac[model]||0)+1;
+      if(yogunSayac[model] <= 3){
+        const sn = Math.round(bekleme/1000);
+        toast(`⏳ <b>Google tarafı yoğun (${r.status})</b> · <b>${model}</b> · ${yogunSayac[model]}/3. deneme, ${sn} sn sonra tekrar...<br><span style="font-weight:700;font-size:.72rem">Bu senin anahtarınla ilgili değil, Google'ın sunucusu geçici olarak dolu. Bekliyorum, sen bir şey yapma.</span>`);
+        await new Promise(res=>setTimeout(res, bekleme));
+        bekleme = Math.min(9000, Math.round(bekleme*1.8));
+        continue;
+      }
+      if(modelDegistir()){
+        bekleme = 900;
+        toast(`🔁 <b>${denenenModeller[denenenModeller.length-2]}</b> yoğunluğu geçmedi → <b>${model}</b> modeli deneniyor.`);
+        continue;
+      }
+      sonHata = new Error('HTTP '+r.status+' · '+em);
+      toast('⚠️ '+netHatasi(sonHata),'red');
+      return r;
+    }
+
+    if(!r.ok){
+      const em = await googleErr(r);
+      sonHata = new Error('HTTP '+r.status+' · '+em);
+      toast('⚠️ '+netHatasi(sonHata),'red');
+      return r;    // uygulamanın kendi hata akışı çalışsın
+    }
+
+    // --- Boş/kesik yanıt: düşünme modu çıktıyı yemiş olabilir ---
+    if(orjGovde && bilgi.uretim){
+      let d=null; try{ d = await r.clone().json(); }catch(e){}
+      const cand = d && d.candidates && d.candidates[0];
+      const metin = ((cand && cand.content && cand.content.parts)||[]).map(x=>x.text||'').join('').trim();
+      const bitis = cand && cand.finishReason;
+      // Çıktı kesildiyse bütçeyi büyüt ve tekrar dene (JSON yarıda kalmasın)
+      if(bitis==='MAX_TOKENS' && orjGovde.generationConfig){
+        const eskiTok = orjGovde.generationConfig.maxOutputTokens || 8192;
+        if(eskiTok < 30000){
+          orjGovde.generationConfig.maxOutputTokens = Math.min(32000, Math.round(eskiTok*1.7));
+          if(vi < govdeVar.length-1) vi++;
+          continue;
+        }
+      }
+      if(!metin){
+        const blok = d && d.promptFeedback && d.promptFeedback.blockReason;
+        if(!blok && vi < govdeVar.length-1){ vi++; continue; }   // varyant değiştirip tekrar dene
+        sonHata = new Error(blok ? ('SAFETY · '+blok) : ('BOŞ_YANIT'+(bitis?' · '+bitis:'')));
+        toast('⚠️ '+netHatasi(sonHata),'red');
+        return r;
+      }
+      // JSON istendiyse gerçekten ayrıştırılabiliyor mu? Değilse tekrar dene.
+      const jsonIster = orjGovde.generationConfig && orjGovde.generationConfig.responseMimeType==='application/json';
+      if(jsonIster){
+        let temizMetin = metin.replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
+        let nesne=null; try{ nesne=JSON.parse(temizMetin); }catch(e){ nesne=null; }
+        if(nesne===null){
+          if(vi < govdeVar.length-1){ vi++; continue; }
+          sonHata = new Error('KESIK_JSON');
+          toast('⚠️ '+netHatasi(sonHata),'red');
+          return r;
+        }
+        // --- Sertifika, AÇIKÇA istenmedikçe eklenmez ---
+        try{
+          const istek = JSON.stringify(orjGovde.contents||'');
+          const sertifikaIstendi = /sertifika|başarı belgesi|basari belgesi|başarı sertifikası|takdir belgesi/i.test(istek);
+          if(!sertifikaIstendi && nesne && Array.isArray(nesne.icerik_bloklari)){
+            const once = nesne.icerik_bloklari.length;
+            nesne.icerik_bloklari = nesne.icerik_bloklari.filter(b => !b || b.blok_tipi!=='sertifika');
+            if(nesne.icerik_bloklari.length !== once && typeof Response!=='undefined'){
+              const kopya = JSON.parse(JSON.stringify(d));
+              kopya.candidates[0].content.parts = [{text: JSON.stringify(nesne)}];
+              CFG_OK[model]=vi;
+              return new Response(JSON.stringify(kopya), {status:200, headers:{'Content-Type':'application/json'}});
+            }
+          }
+        }catch(e){}
+      }
+    }
+    CFG_OK[model] = vi;   // çalışan varyantı hatırla
+    return r;
+  }
+  if(sonHata) throw sonHata;
+  return ORIG_FETCH(input, init);
+};
+
+// ============================================================
+//  AYAR PANELİ (🔑 API)
+// ============================================================
+function panelYenile(){
+  const d=document.getElementById('zirve-key-status'); 
+  const mi=document.getElementById('zirve-model');
+  if(mi && document.activeElement!==mi) mi.value = MODEL;
+  if(!d) return;
+  const n=Date.now();
+  if(!RING.keys.length){ d.innerHTML='<span style="color:#991b1b;font-weight:800">Anahtar yok</span>'; return; }
+  d.innerHTML = RING.keys.map((k,i)=>{
+    const c=RING.cool[coolKey(MODEL,k)]||0, dolu=c>n;
+    const kalan = dolu ? Math.ceil((c-n)/60000)+' dk' : 'hazır';
+    return `<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 8px;border-radius:8px;background:${dolu?'#fef2f2':'#f0fdf4'};margin-bottom:4px">
+      <span style="font-weight:800">${dolu?'🔴':'🟢'} ${i+1}. ${k.slice(0,6)}…${k.slice(-4)}${RING.aktif===k?' <span style="color:#2563eb">◀ aktif</span>':''}</span>
+      <span style="font-weight:700;opacity:.75">${kalan}</span></div>`;
+  }).join('') + `<div style="margin-top:6px;font-size:.7rem;font-weight:700;opacity:.7">Durum, <b>${MODEL}</b> modeline göre gösteriliyor.</div>`;
+}
+
+async function testEt(){
+  const out=document.getElementById('zirve-test-out');
+  const ta=document.getElementById('zirve-keys');
+  ringSet(ta.value.split(/[\n,;]+/));
+  RING.aktif=null; ringSave();
+  if(!RING.keys.length){ out.innerHTML='<b style="color:#991b1b">Anahtar girmedin.</b>'; return; }
+  out.innerHTML='⏳ Her anahtar tek tek deneniyor...';
+  const satir=[]; const gecerli=[]; let modeller=null;
+  for(let i=0;i<RING.keys.length;i++){
+    const k=RING.keys[i];
+    try{
+      const list=await listModels(k);
+      gecerli.push(k); if(!modeller) modeller=list;
+      satir.push(`<div style="color:#166534;font-weight:700">✅ ${i+1}. anahtar geçerli · ${list.length} model erişilebilir</div>`);
+    }catch(e){
+      satir.push(`<div style="color:#991b1b;font-weight:700">❌ ${i+1}. anahtar: ${netHatasi(e)}</div>`);
+    }
+  }
+  if(gecerli.length && modeller){
+    KULLANILABILIR = modeller.slice();
+    try{ localStorage.setItem('zirve_models', JSON.stringify(modeller)); }catch(e){}
+    const havuz = modelHavuzu();
+    satir.push(`<div style="color:#166534;font-weight:700">🔁 Yedek model zinciri kuruldu (${havuz.length} model): ${havuz.slice(0,4).join(' → ')}${havuz.length>4?' → …':''}</div>`);
+    const secili=document.getElementById('zirve-model').value.trim();
+    if(!secili || modeller.indexOf(secili)===-1){
+      const iyi=enIyiModel(modeller);
+      if(iyi){ MODEL=iyi; localStorage.setItem(LS.model,iyi); document.getElementById('zirve-model').value=iyi;
+        satir.push(`<div style="color:#1d4ed8;font-weight:800">⚡ Model otomatik seçildi: ${iyi}</div>`); }
+    } else { MODEL=secili; localStorage.setItem(LS.model,secili); }
+    const dl=document.getElementById('zirve-model-list');
+    if(dl) dl.innerHTML = modeller.map(m=>`<option value="${m}">`).join('');
+    if(gecerli.length>=2){
+      satir.push(`<div style="color:#92400e;font-weight:700;margin-top:4px">ℹ️ Not: Google'da kota <b>anahtar başına değil, PROJE başına</b>dır. Anahtarların aynı projedeyse aynı kotayı paylaşır; ayrı projelerde açarsan her biri kendi kotasını alır.</div>`);
+    }
+  }
+  out.innerHTML = satir.join('');
+  ringSave(); panelYenile();
+  if(gecerli.length){
+    toast(`✅ <b>${gecerli.length}/${RING.keys.length} anahtar çalışıyor · model: ${MODEL}</b><br><span style="font-weight:700;font-size:.72rem">Sayfa yenileniyor, ardından tüm AI özellikleri açık olacak.</span>`,'green');
+    setTimeout(()=>location.reload(), 2200);
+  }
+}
+
+function panelKur(){
+  if(document.getElementById('zirve-panel')) return;
+  const p=document.createElement('div');
+  p.id='zirve-panel';
+  p.style.cssText='margin-top:18px;border:2px solid #e2e8f0;border-radius:16px;padding:16px;background:#f8fafc;font:400 13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a';
+  p.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+      <b style="font-size:15px">🔑 Gelişmiş API Ayarları</b>
+      <span style="background:#dbeafe;color:#1d4ed8;font-weight:800;font-size:10px;padding:2px 7px;border-radius:999px">ÇOKLU ANAHTAR</span>
+    </div>
+    <div style="font-size:11px;font-weight:600;opacity:.7;margin-bottom:11px">Birden fazla anahtar ekle; biri dolunca diğerine, gerekirse başka modele otomatik geçilir.</div>
+    <label style="font-weight:800;font-size:12px">Anahtarların — her satıra bir tane</label>
+    <textarea id="zirve-keys" rows="4" placeholder="AIza...&#10;AIza...&#10;AIza..." style="width:100%;margin:5px 0 8px;padding:9px;border:2px solid #e2e8f0;border-radius:10px;font:600 12px ui-monospace,monospace;resize:vertical;background:#fff"></textarea>
+    <div style="font-size:11px;font-weight:600;opacity:.7;margin-bottom:10px">Ücretsiz anahtar: <b>aistudio.google.com/apikey</b></div>
+    <label style="font-weight:800;font-size:12px">Model</label>
+    <input id="zirve-model" list="zirve-model-list" style="width:100%;margin:5px 0 4px;padding:9px;border:2px solid #e2e8f0;border-radius:10px;font-weight:700;background:#fff">
+    <datalist id="zirve-model-list"></datalist>
+    <div style="font-size:11px;font-weight:600;opacity:.7;margin-bottom:10px">Bilmiyorsan dokunma. Materyal üretimi için en güvenlisi <b>gemini-2.5-flash</b>.</div>
+    <label style="font-weight:800;font-size:12px">Dakikadaki istek sınırı: <span id="zirve-rpm-v"></span></label>
+    <input id="zirve-rpm" type="range" min="2" max="30" style="width:100%;margin:5px 0 12px">
+    <button id="zirve-test" style="width:100%;background:#1d4ed8;color:#fff;border:none;border-radius:11px;padding:12px;font-weight:800;cursor:pointer;font-size:13px">Anahtarları Tek Tek Test Et ve Kaydet</button>
+    <div id="zirve-test-out" style="margin-top:10px;font-size:12px;line-height:1.5"></div>
+    <div style="margin-top:12px;border-top:2px solid #e2e8f0;padding-top:9px">
+      <b style="font-size:12px">Anahtar durumu</b>
+      <div id="zirve-key-status" style="margin-top:6px;font-size:11px"></div>
+    </div>`;
+  // Panel DOM'da dursun; aşağıdaki yerleştirici onu Ayarlar ekranına taşıyacak
+  p.style.display='none';
+  document.body.appendChild(p);
+
+  document.getElementById('zirve-keys').value = RING.keys.join('\n');
+  document.getElementById('zirve-model').value = MODEL;
+  const rp=document.getElementById('zirve-rpm'); rp.value=RPM;
+  document.getElementById('zirve-rpm-v').textContent=RPM;
+  rp.oninput=()=>{ RPM=parseInt(rp.value,10); document.getElementById('zirve-rpm-v').textContent=RPM; localStorage.setItem(LS.rpm,RPM); };
+  document.getElementById('zirve-test').onclick=testEt;
+  document.getElementById('zirve-model').onchange=(e)=>{ MODEL=e.target.value.trim()||'gemini-2.5-flash'; localStorage.setItem(LS.model,MODEL); panelYenile(); };
+  panelYenile();
+  setInterval(panelYenile, 20000);
+  yerlestir();
+  // React sekme değiştirince Ayarlar ekranı yeniden çizilir → paneli tekrar yerine koy
+  try{ new MutationObserver(yerlestir).observe(document.body,{childList:true,subtree:true}); }catch(e){}
+}
+
+// Paneli, Ayarlar sekmesindeki "TAMAM (Kaydet ve Doğrula)" düğmesinin altına yerleştirir.
+function yerlestir(){
+  const p=document.getElementById('zirve-panel'); if(!p) return;
+  try{ if(typeof sablonDugmesiYerlestir==='function') sablonDugmesiYerlestir(); }catch(e){}
+  try{ if(typeof heceDugmeYerlestir==='function') heceDugmeYerlestir(); }catch(e){}
+  let hedef=null;
+  // 1) "Kaydet ve Doğrula" / "Bağla ve Kaydet" butonu
+  const btns=document.querySelectorAll('button');
+  for(let i=0;i<btns.length;i++){
+    const t=(btns[i].textContent||'');
+    if(t.indexOf('Kaydet ve Doğrula')!==-1 || t.indexOf('Bağla ve Kaydet')!==-1){ hedef=btns[i]; break; }
+  }
+  // 2) bu uygulamanın Ayarlar çubuğu: KAYDET / AKTİF butonu (API anahtarı inputunun yanında)
+  if(!hedef){
+    for(let i=0;i<btns.length;i++){
+      const t=(btns[i].textContent||'').trim();
+      if(t==='KAYDET' || t.indexOf('AKTİF')!==-1){ hedef=btns[i]; break; }
+    }
+  }
+  // 3) yedek: "Gemini API Anahtarı" etiketi
+  if(!hedef){
+    const ls=document.querySelectorAll('label');
+    for(let i=0;i<ls.length;i++){
+      if((ls[i].textContent||'').indexOf('Gemini API Anahtarı')!==-1){
+        let box=ls[i]; for(let up=0; up<4 && box.parentNode; up++) box=box.parentNode; hedef=box; break;
+      }
+    }
+  }
+  if(!hedef){ p.style.display='none'; return; }
+  // butonsa, butonun kapsayıcı satırının ALTINA koy (çubuğu bozmamak için)
+  let ekleNoktasi = hedef;
+  if(hedef.tagName==='BUTTON'){ let up=hedef; for(let k=0;k<3 && up.parentNode;k++) up=up.parentNode; ekleNoktasi=up; }
+  if(p.previousSibling!==ekleNoktasi && ekleNoktasi.parentNode){
+    ekleNoktasi.parentNode.insertBefore(p, ekleNoktasi.nextSibling);
+  }
+  p.style.display='block';
+}
+
+// ---------- Başlat ----------
+ringLoad();
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', panelKur);
+else panelKur();
+
+// Dışarıdan erişim (konsoldan bakmak istersen)
+window.ZIRVE = { RING, get model(){return MODEL;}, set model(m){ MODEL=m; localStorage.setItem(LS.model,m); panelYenile(); },
+                 netHatasi, listModels, ringHazir, ringLoad, ringSet, ringSave, modelSonraki, testEt, panelYenile,
+                 modelHavuzu,
+                 get modeller(){return KULLANILABILIR;},
+                 set modeller(l){ KULLANILABILIR=l; try{localStorage.setItem('zirve_models',JSON.stringify(l));}catch(e){} } };
+})();
+</script>
+
+
+<script type="text/babel">
         const { useState, useEffect } = React;
 
         // --- TAM LİSTE MÜFREDAT (ÖSYM %100 GÜNCEL ÖABT + AGS + GKGY) ---
@@ -180,12 +729,12 @@
             const [models, setModels] = useState(() => {
                 const saved = localStorage.getItem('baris_models_list');
                 return saved ? JSON.parse(saved) : [
-                    { id: "gemini-2.0-flash-exp", label: "Gemini 2.0 Flash (Hızlı)" },
-                    { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro (Detaylı)" },
-                    { id: "gemini-1.5-flash", label: "Gemini 1.5 Flash" }
+                    { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Hızlı)" },
+                    { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro (Detaylı)" },
+                    { id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite (En Hızlı)" }
                 ];
             });
-            const [selectedModel, setSelectedModel] = useState(localStorage.getItem('baris_model') || "gemini-2.0-flash-exp");
+            const [selectedModel, setSelectedModel] = useState(localStorage.getItem('baris_model') || "gemini-2.5-flash");
 
             const handleModelChange = (e) => {
                 const val = e.target.value;
@@ -489,7 +1038,7 @@
             ];
             const [quote, setQuote] = useState(motivasyonSozleri[0]);
 
-            const getSelectedModel = () => localStorage.getItem('baris_model') || "gemini-2.0-flash-exp";
+            const getSelectedModel = () => localStorage.getItem('baris_model') || "gemini-2.5-flash";
 
             
             const targetDate = new Date('2026-07-26T00:00:00+03:00');
