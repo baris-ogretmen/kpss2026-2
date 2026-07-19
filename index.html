@@ -50,7 +50,7 @@
 <body>
     <div id="root"></div>
 
-    <!-- ===== ZİRVE API KATMANI · şık modal panel + sınırsız görünür anahtar + otomatik model + 503 dayanıklılığı ===== -->
+    <!-- ===== ZİRVE API KATMANI · gizlenebilir buton + modal + sınırsız görünür anahtar + otomatik model + 503 ===== -->
 <script>
 /* ============================================================
    ZİRVE API KATMANI  ·  çoklu anahtar + otomatik model + teşhis
@@ -296,6 +296,33 @@ window.fetch = async function(input, init){
   let vi = (CFG_OK[model]!==undefined) ? CFG_OK[model] : 0;
   let orjGovde = null;
   if(init && init.body){ try{ orjGovde = JSON.parse(init.body); }catch(e){ orjGovde=null; } }
+
+  // --- Bu uygulamaya özel: "çıkmış soru" (osym_q) üreten deneme isteklerinde
+  //     modelin bu alanları ATLAMAMASI için katı bir JSON şeması dayat. ---
+  try{
+    if(orjGovde && orjGovde.generationConfig &&
+       orjGovde.generationConfig.responseMimeType==='application/json' &&
+       !orjGovde.generationConfig.responseSchema){
+      const istekStr = JSON.stringify(orjGovde.contents||'');
+      if(/osym_q|osym_analizi/.test(istekStr)){
+        orjGovde.generationConfig.responseSchema = {
+          type:"ARRAY",
+          items:{ type:"OBJECT",
+            properties:{
+              q:{type:"STRING"},
+              opts:{type:"ARRAY", items:{type:"STRING"}},
+              ans:{type:"INTEGER"},
+              exp:{type:"STRING"},
+              osym_q:{type:"STRING"},
+              osym_analizi:{type:"STRING"}
+            },
+            required:["q","opts","ans","exp","osym_q","osym_analizi"]
+          }
+        };
+        init = Object.assign({}, init, {body: JSON.stringify(orjGovde)});
+      }
+    }
+  }catch(e){}
 
   const modelDegistir = ()=>{
     const yeni = modelSonraki(model, denenenModeller);
@@ -649,37 +676,33 @@ function modalAc(){
 function modalKapat(){ const ov=document.getElementById('zirve-panel'); if(ov) ov.style.display='none'; }
 window.ZIRVE_ACMENU = modalAc;
 
-// Modalı açan belirgin bir düğmeyi bağlantı çubuğunun yanına koyar.
+// Modalı açan gizlenebilir düğmeyi sayfaya (sabit, sağ-alt) koyar.
 function yerlestir(){
   const ov=document.getElementById('zirve-panel'); if(!ov) return;
   try{ if(typeof sablonDugmesiYerlestir==='function') sablonDugmesiYerlestir(); }catch(e){}
   try{ if(typeof heceDugmeYerlestir==='function') heceDugmeYerlestir(); }catch(e){}
-  if(document.getElementById('zirve-ac-btn')) return;   // düğme zaten kondu
+  if(document.getElementById('zirve-ac-sar') || document.getElementById('zirve-ac-tab')) return;  // zaten kondu
 
-  // Bağlantı butonunu bul: BAĞLAN/BAĞLI/KAYDET/AKTİF/Kaydet ve Doğrula
-  let hedef=null;
-  const btns=document.querySelectorAll('button');
-  for(let i=0;i<btns.length;i++){
-    const t=(btns[i].textContent||'').trim();
-    if(t.indexOf('Kaydet ve Doğrula')!==-1 || t.indexOf('Bağla ve Kaydet')!==-1 ||
-       t==='KAYDET' || t==='BAĞLAN' || t.indexOf('AKTİF')!==-1 || t.indexOf('BAĞLI')!==-1){ hedef=btns[i]; break; }
-  }
+  // SABİT sağ-alt buton + gizle (×) + gizlenince ince 🔑 sekmesi.
+  // Sağ-alta koyuyoruz ki üstteki "SORU x/y" sayacını ASLA engellemesin.
+  const sar=document.createElement('div');
+  sar.id='zirve-ac-sar';
+  sar.style.cssText='position:fixed;right:14px;bottom:14px;z-index:2147483000;display:flex;align-items:center';
   const btn=document.createElement('button');
-  btn.id='zirve-ac-btn'; btn.type='button';
-  btn.innerHTML='🔑 API Anahtarları';
-  btn.style.cssText='display:inline-flex;align-items:center;gap:6px;background:linear-gradient(90deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:12px;padding:10px 16px;font-weight:900;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(79,70,229,.4);z-index:2147483000';
-  btn.onmouseenter=()=>btn.style.filter='brightness(1.08)';
-  btn.onmouseleave=()=>btn.style.filter='none';
-  btn.onclick=(e)=>{ e.preventDefault(); e.stopPropagation(); modalAc(); };
-
-  if(hedef && hedef.parentNode){
-    hedef.parentNode.insertBefore(btn, hedef.nextSibling);
-    btn.style.marginLeft='8px';
-  } else {
-    // Bağlantı çubuğu bulunamadıysa sağ üstte sabit dursun (asla kaybolmasın)
-    btn.style.position='fixed'; btn.style.top='12px'; btn.style.right='12px';
-    document.body.appendChild(btn);
-  }
+  btn.id='zirve-ac-btn'; btn.type='button'; btn.innerHTML='🔑 API';
+  btn.style.cssText='display:inline-flex;align-items:center;gap:6px;background:linear-gradient(90deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:12px 0 0 12px;padding:10px 15px;font-weight:900;font-size:12.5px;cursor:pointer;box-shadow:0 4px 14px rgba(79,70,229,.4)';
+  btn.onclick=(e)=>{ e.preventDefault(); e.stopPropagation(); modalAcikMi() ? modalKapat() : modalAc(); };
+  const gizle=document.createElement('button');
+  gizle.type='button'; gizle.innerHTML='×'; gizle.title='Gizle';
+  gizle.style.cssText='background:#312e81;color:#fff;border:none;border-radius:0 12px 12px 0;padding:10px 12px;font-weight:900;font-size:16px;cursor:pointer;box-shadow:0 4px 14px rgba(79,70,229,.4);line-height:1';
+  const tab=document.createElement('button');
+  tab.id='zirve-ac-tab'; tab.type='button'; tab.innerHTML='🔑'; tab.title='API Anahtarları';
+  tab.style.cssText='position:fixed;right:0;bottom:80px;z-index:2147483000;background:linear-gradient(90deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:10px 0 0 10px;padding:9px 8px;font-size:17px;cursor:pointer;box-shadow:0 4px 14px rgba(79,70,229,.4);display:none';
+  gizle.onclick=(e)=>{ e.preventDefault(); e.stopPropagation(); sar.style.display='none'; tab.style.display='block'; try{localStorage.setItem('zirve_btn_gizli','1');}catch(_){}};
+  tab.onclick=(e)=>{ e.preventDefault(); e.stopPropagation(); sar.style.display='flex'; tab.style.display='none'; try{localStorage.removeItem('zirve_btn_gizli');}catch(_){}};
+  sar.appendChild(btn); sar.appendChild(gizle);
+  document.body.appendChild(sar); document.body.appendChild(tab);
+  try{ if(localStorage.getItem('zirve_btn_gizli')==='1'){ sar.style.display='none'; tab.style.display='block'; } }catch(_){}
 }
 
 // ---------- Başlat ----------
