@@ -50,7 +50,7 @@
 <body>
     <div id="root"></div>
 
-    <!-- ===== ZİRVE API KATMANI · sınırsız anahtar + otomatik model + 503 dayanıklılığı ===== -->
+    <!-- ===== ZİRVE API KATMANI · şık modal panel + sınırsız görünür anahtar + otomatik model + 503 dayanıklılığı ===== -->
 <script>
 /* ============================================================
    ZİRVE API KATMANI  ·  çoklu anahtar + otomatik model + teşhis
@@ -64,6 +64,8 @@
 // ---------- Depolama ----------
 const LS = { keys:'zirve_keys', cool:'zirve_keycool', model:'baris_model', rpm:'zirve_rpm', legacy:'baris_key' };
 const RING = { keys:[], cool:{}, aktif:null };
+let KEY_MODELS = {};   // anahtar -> eriştiği model sayısı (Test Et'te öğrenilir)
+try{ const r=localStorage.getItem('zirve_keymodels'); if(r) KEY_MODELS=JSON.parse(r)||{}; }catch(e){}
 let MODEL = localStorage.getItem(LS.model) || 'gemini-2.5-flash';
 let RPM = parseInt(localStorage.getItem(LS.rpm)||'8',10);
 
@@ -87,7 +89,10 @@ function ringSave(){
 }
 // Kota Google'da MODEL BAZINDA tutulur → dinlenme kaydı "model|anahtar"
 function coolKey(m,k){ return (m||'?')+'|'+k; }
-function ringHazir(m){ const n=Date.now(); return RING.keys.filter(k=>!(RING.cool[coolKey(m,k)]>n)); }
+function coolBitis(v){ return (v && typeof v==='object') ? (v.bitis||0) : (v||0); }
+function coolGunluk(v){ return (v && typeof v==='object') ? !!v.gunluk : false; }
+function ringHazir(m){ const n=Date.now(); return RING.keys.filter(k=>!(coolBitis(RING.cool[coolKey(m,k)])>n)); }
+function coolInfo(m,k){ return RING.cool[coolKey(m,k)]; }
 function ringPick(m){
   const h=ringHazir(m); if(!h.length) return null;
   if(RING.aktif && h.indexOf(RING.aktif)!==-1) return RING.aktif;
@@ -103,12 +108,12 @@ function ringCool(key, mesaj, m){
     const mid=new Date(pt); mid.setHours(24,0,0,0);
     ms=Math.max(60000, mid-pt);
   }
-  RING.cool[coolKey(m,key)] = Date.now()+ms; ringSave();
+  RING.cool[coolKey(m,key)] = { bitis: Date.now()+ms, gunluk: gunluk }; ringSave();
   return gunluk;
 }
 function ringBekleme(m){
   const n=Date.now(); let en=Infinity;
-  RING.keys.forEach(k=>{ const c=RING.cool[coolKey(m,k)]||0; if(c>n) en=Math.min(en,c-n); });
+  RING.keys.forEach(k=>{ const c=coolBitis(RING.cool[coolKey(m,k)]); if(c>n) en=Math.min(en,c-n); });
   if(en===Infinity) return '';
   const dk=Math.ceil(en/60000);
   return dk>60 ? Math.ceil(dk/60)+' saat' : dk+' dakika';
@@ -443,20 +448,73 @@ window.fetch = async function(input, init){
 // ============================================================
 //  AYAR PANELİ (🔑 API)
 // ============================================================
+let ANAHTAR_GOSTER = false;   // anahtarların tamamı görünsün mü
+function _sure(ms){
+  if(ms<=0) return 'hazır';
+  const dk=Math.ceil(ms/60000);
+  if(dk<60) return dk+' dk';
+  const s=Math.floor(dk/60), k=dk%60;
+  return s+' sa'+(k?' '+k+' dk':'');
+}
 function panelYenile(){
-  const d=document.getElementById('zirve-key-status'); 
   const mi=document.getElementById('zirve-model');
   if(mi && document.activeElement!==mi) mi.value = MODEL;
+  // Özet şeridi
+  const ozet=document.getElementById('zirve-ozet');
+  const d=document.getElementById('zirve-key-status');
   if(!d) return;
   const n=Date.now();
-  if(!RING.keys.length){ d.innerHTML='<span style="color:#991b1b;font-weight:800">Anahtar yok</span>'; return; }
-  d.innerHTML = RING.keys.map((k,i)=>{
-    const c=RING.cool[coolKey(MODEL,k)]||0, dolu=c>n;
-    const kalan = dolu ? Math.ceil((c-n)/60000)+' dk' : 'hazır';
-    return `<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 8px;border-radius:8px;background:${dolu?'#fef2f2':'#f0fdf4'};margin-bottom:4px">
-      <span style="font-weight:800">${dolu?'🔴':'🟢'} ${i+1}. ${k.slice(0,6)}…${k.slice(-4)}${RING.aktif===k?' <span style="color:#2563eb">◀ aktif</span>':''}</span>
-      <span style="font-weight:700;opacity:.75">${kalan}</span></div>`;
-  }).join('') + `<div style="margin-top:6px;font-size:.7rem;font-weight:700;opacity:.7">Durum, <b>${MODEL}</b> modeline göre gösteriliyor.</div>`;
+  if(!RING.keys.length){
+    if(ozet) ozet.innerHTML='';
+    d.innerHTML='<div style="padding:10px;text-align:center;color:#991b1b;font-weight:800;background:#fef2f2;border-radius:10px">Henüz anahtar yok — yukarıya yapıştır ve Test Et.</div>';
+    return;
+  }
+  // her anahtarın bu modeldeki durumu
+  let hazir=0, dolu=0, gunlukDolu=0;
+  const satirlar = RING.keys.map((k,i)=>{
+    const info = RING.cool[coolKey(MODEL,k)];
+    const bitis = coolBitis(info), gunluk = coolGunluk(info);
+    const kalanMs = bitis - n;
+    const aktifMi = (RING.aktif===k);
+    // bu anahtarın kaç modele erişebildiği (testte öğrenildiyse)
+    let modelSay = '';
+    try{ const mm = (KEY_MODELS && KEY_MODELS[k]); if(mm) modelSay = mm+' model'; }catch(e){}
+    if(kalanMs>0){ dolu++; if(gunluk) gunlukDolu++; }
+    else hazir++;
+    const durumRenk = kalanMs>0 ? (gunluk?'#fde68a':'#fecaca') : '#bbf7d0';
+    const durumBg   = kalanMs>0 ? (gunluk?'#fffbeb':'#fef2f2') : '#f0fdf4';
+    const rozet = kalanMs>0
+        ? `<span style="background:${gunluk?'#f59e0b':'#ef4444'};color:#fff;font-weight:800;font-size:9px;padding:1px 6px;border-radius:999px">${gunluk?'GÜNLÜK DOLDU':'DAKİKALIK'}</span>`
+        : `<span style="background:#22c55e;color:#fff;font-weight:800;font-size:9px;padding:1px 6px;border-radius:999px">HAZIR</span>`;
+    return `<div style="border:2px solid ${durumRenk};background:${durumBg};border-radius:10px;padding:8px 10px;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <span style="font-weight:800;font-size:12px">${kalanMs>0?(gunluk?'🟠':'🔴'):'🟢'} ${i+1}. anahtar
+<span class="zirve-key-text" data-k="${encodeURIComponent(k)}" style="font-family:ui-monospace,monospace;font-weight:600;opacity:.72;font-size:11px;word-break:break-all;cursor:pointer" title="Tıkla: kopyala">${ANAHTAR_GOSTER ? k : (k.slice(0,7)+'…'+k.slice(-4))}</span>
+          ${aktifMi?'<span style="color:#2563eb;font-weight:800;font-size:10px"> ◀ ŞU AN AKTİF</span>':''}
+        </span>
+        ${rozet}
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10.5px;font-weight:700;opacity:.8">
+        <span>${modelSay||'&nbsp;'}</span>
+        <span>${kalanMs>0 ? ('yenilenme: '+_sure(kalanMs)) : 'kullanıma hazır'}</span>
+      </div>
+    </div>`;
+  }).join('');
+  d.innerHTML = satirlar + `<div style="margin-top:6px;font-size:.7rem;font-weight:700;opacity:.65">Durum <b>${MODEL}</b> modeline göre. Kota dolunca katman kendiliğinden sıradaki anahtara/modele geçer.</div>`;
+  d.querySelectorAll('.zirve-key-text').forEach(el=>{
+    el.onclick=()=>{ try{ const val=decodeURIComponent(el.dataset.k);
+      if(navigator.clipboard) navigator.clipboard.writeText(val);
+      toast('📋 Anahtar kopyalandı.','green'); }catch(e){} };
+  });
+  if(ozet){
+    ozet.innerHTML = `
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span style="background:#dcfce7;color:#166534;font-weight:800;font-size:11px;padding:4px 10px;border-radius:999px">🟢 ${hazir} hazır</span>
+        <span style="background:#fee2e2;color:#991b1b;font-weight:800;font-size:11px;padding:4px 10px;border-radius:999px">🔴 ${dolu-gunlukDolu} dakikalık dolu</span>
+        <span style="background:#fef3c7;color:#92400e;font-weight:800;font-size:11px;padding:4px 10px;border-radius:999px">🟠 ${gunlukDolu} günlük dolu</span>
+        <span style="background:#e0e7ff;color:#3730a3;font-weight:800;font-size:11px;padding:4px 10px;border-radius:999px">Σ ${RING.keys.length} anahtar</span>
+      </div>`;
+  }
 }
 
 async function testEt(){
@@ -472,6 +530,7 @@ async function testEt(){
     try{
       const list=await listModels(k);
       gecerli.push(k); if(!modeller) modeller=list;
+      KEY_MODELS[k]=list.length;
       satir.push(`<div style="color:#166534;font-weight:700">✅ ${i+1}. anahtar geçerli · ${list.length} model erişilebilir</div>`);
     }catch(e){
       satir.push(`<div style="color:#991b1b;font-weight:700">❌ ${i+1}. anahtar: ${netHatasi(e)}</div>`);
@@ -479,7 +538,7 @@ async function testEt(){
   }
   if(gecerli.length && modeller){
     KULLANILABILIR = modeller.slice();
-    try{ localStorage.setItem('zirve_models', JSON.stringify(modeller)); }catch(e){}
+    try{ localStorage.setItem('zirve_models', JSON.stringify(modeller)); localStorage.setItem('zirve_keymodels', JSON.stringify(KEY_MODELS)); }catch(e){}
     const havuz = modelHavuzu();
     satir.push(`<div style="color:#166534;font-weight:700">🔁 Yedek model zinciri kuruldu (${havuz.length} model): ${havuz.slice(0,4).join(' → ')}${havuz.length>4?' → …':''}</div>`);
     const secili=document.getElementById('zirve-model').value.trim();
@@ -504,13 +563,19 @@ async function testEt(){
 
 function panelKur(){
   if(document.getElementById('zirve-panel')) return;
+  const ov=document.createElement('div');
+  ov.id='zirve-panel';   // modal kabuk
+  ov.style.cssText='position:fixed;inset:0;z-index:2147483600;background:rgba(15,23,42,.78);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding:24px 14px;overflow:auto';
   const p=document.createElement('div');
-  p.id='zirve-panel';
-  p.style.cssText='margin-top:18px;border:2px solid #e2e8f0;border-radius:16px;padding:16px;background:#f8fafc;font:400 13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a';
+  p.style.cssText='width:min(560px,100%);border-radius:20px;padding:22px;background:#fff;font:400 13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;box-shadow:0 24px 60px rgba(0,0,0,.35);margin:auto';
+  ov.appendChild(p);
   p.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-      <b style="font-size:15px">🔑 Gelişmiş API Ayarları</b>
-      <span style="background:#dbeafe;color:#1d4ed8;font-weight:800;font-size:10px;padding:2px 7px;border-radius:999px">ÇOKLU ANAHTAR</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <b style="font-size:18px">🔑 API Anahtarları</b>
+        <span style="background:#dbeafe;color:#1d4ed8;font-weight:800;font-size:10px;padding:2px 7px;border-radius:999px">SINIRSIZ · ÇOKLU</span>
+      </div>
+      <button id="zirve-kapat" style="background:#f1f5f9;color:#334155;border:none;border-radius:10px;width:34px;height:34px;font-size:18px;font-weight:900;cursor:pointer;line-height:1">×</button>
     </div>
     <div style="font-size:11px;font-weight:600;opacity:.7;margin-bottom:11px">Birden fazla anahtar ekle; biri dolunca diğerine, gerekirse başka modele otomatik geçilir.</div>
     <label style="font-weight:800;font-size:12px">Anahtarların — her satıra bir tane</label>
@@ -525,12 +590,23 @@ function panelKur(){
     <button id="zirve-test" style="width:100%;background:#1d4ed8;color:#fff;border:none;border-radius:11px;padding:12px;font-weight:800;cursor:pointer;font-size:13px">Anahtarları Tek Tek Test Et ve Kaydet</button>
     <div id="zirve-test-out" style="margin-top:10px;font-size:12px;line-height:1.5"></div>
     <div style="margin-top:12px;border-top:2px solid #e2e8f0;padding-top:9px">
-      <b style="font-size:12px">Anahtar durumu</b>
-      <div id="zirve-key-status" style="margin-top:6px;font-size:11px"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+        <b style="font-size:12px">📊 Anahtar Panosu</b>
+        <div style="display:flex;gap:6px">
+          <button id="zirve-goz" style="background:#f1f5f9;color:#0f172a;border:none;border-radius:8px;padding:5px 10px;font-weight:800;cursor:pointer;font-size:11px">👁 Anahtarları Göster</button>
+          <button id="zirve-tazele" style="background:#e0e7ff;color:#3730a3;border:none;border-radius:8px;padding:5px 10px;font-weight:800;cursor:pointer;font-size:11px">↻ Tazele</button>
+        </div>
+      </div>
+      <div id="zirve-ozet" style="margin-bottom:8px"></div>
+      <div id="zirve-key-status" style="margin-top:2px;font-size:11px"></div>
+      <div style="margin-top:8px;font-size:10px;font-weight:600;opacity:.6;line-height:1.5">
+        🟢 hazır = hemen kullanılabilir · 🔴 dakikalık dolu = ~1 dk sonra açılır · 🟠 günlük dolu = ertesi gün (Pasifik gece yarısı) açılır.
+        Kotanın <b>tam sayısını Google göstermez</b>; burada gördüğün, katmanın gerçek isteklerden öğrendiği durumdur.
+      </div>
     </div>`;
-  // Panel DOM'da dursun; aşağıdaki yerleştirici onu Ayarlar ekranına taşıyacak
-  p.style.display='none';
-  document.body.appendChild(p);
+  document.body.appendChild(ov);
+  // Dışına tıklayınca ya da × ile kapat
+  ov.addEventListener('click', (e)=>{ if(e.target===ov) modalKapat(); });
 
   document.getElementById('zirve-keys').value = RING.keys.join('\n');
   document.getElementById('zirve-model').value = MODEL;
@@ -538,50 +614,72 @@ function panelKur(){
   document.getElementById('zirve-rpm-v').textContent=RPM;
   rp.oninput=()=>{ RPM=parseInt(rp.value,10); document.getElementById('zirve-rpm-v').textContent=RPM; localStorage.setItem(LS.rpm,RPM); };
   document.getElementById('zirve-test').onclick=testEt;
+  const goz=document.getElementById('zirve-goz');
+  if(goz) goz.onclick=()=>{
+    ANAHTAR_GOSTER=!ANAHTAR_GOSTER;
+    goz.textContent = ANAHTAR_GOSTER ? '🙈 Anahtarları Gizle' : '👁 Anahtarları Göster';
+    goz.style.background = ANAHTAR_GOSTER ? '#dbeafe' : '#f1f5f9';
+    panelYenile();
+  };
+  const tzl=document.getElementById('zirve-tazele');
+  if(tzl) tzl.onclick=()=>{
+    const n=Date.now(); let temizlenen=0;
+    Object.keys(RING.cool).forEach(ck=>{ if(coolBitis(RING.cool[ck])<=n){ delete RING.cool[ck]; temizlenen++; } });
+    RING.aktif = ringHazir(MODEL)[0] || null;
+    ringSave(); panelYenile();
+    toast(temizlenen?`↻ ${temizlenen} anahtarın süresi dolmuştu, tekrar hazır işaretlendi.`:'↻ Pano güncellendi. Dolu anahtarların süresi henüz gelmemiş.','green');
+  };
   document.getElementById('zirve-model').onchange=(e)=>{ MODEL=e.target.value.trim()||'gemini-2.5-flash'; localStorage.setItem(LS.model,MODEL); panelYenile(); };
+  const kapatBtn=document.getElementById('zirve-kapat');
+  if(kapatBtn) kapatBtn.onclick=modalKapat;
   panelYenile();
-  setInterval(panelYenile, 20000);
+  setInterval(()=>{ if(modalAcikMi()) panelYenile(); }, 8000);
   yerlestir();
-  // React sekme değiştirince Ayarlar ekranı yeniden çizilir → paneli tekrar yerine koy
   try{ new MutationObserver(yerlestir).observe(document.body,{childList:true,subtree:true}); }catch(e){}
 }
 
-// Paneli, Ayarlar sekmesindeki "TAMAM (Kaydet ve Doğrula)" düğmesinin altına yerleştirir.
+function modalAcikMi(){ const ov=document.getElementById('zirve-panel'); return ov && ov.style.display==='flex'; }
+function modalAc(){
+  const ov=document.getElementById('zirve-panel'); if(!ov) return;
+  const ta=document.getElementById('zirve-keys'); if(ta) ta.value = RING.keys.join('\n');
+  const mi=document.getElementById('zirve-model'); if(mi) mi.value = MODEL;
+  ov.style.display='flex';
+  panelYenile();
+}
+function modalKapat(){ const ov=document.getElementById('zirve-panel'); if(ov) ov.style.display='none'; }
+window.ZIRVE_ACMENU = modalAc;
+
+// Modalı açan belirgin bir düğmeyi bağlantı çubuğunun yanına koyar.
 function yerlestir(){
-  const p=document.getElementById('zirve-panel'); if(!p) return;
+  const ov=document.getElementById('zirve-panel'); if(!ov) return;
   try{ if(typeof sablonDugmesiYerlestir==='function') sablonDugmesiYerlestir(); }catch(e){}
   try{ if(typeof heceDugmeYerlestir==='function') heceDugmeYerlestir(); }catch(e){}
+  if(document.getElementById('zirve-ac-btn')) return;   // düğme zaten kondu
+
+  // Bağlantı butonunu bul: BAĞLAN/BAĞLI/KAYDET/AKTİF/Kaydet ve Doğrula
   let hedef=null;
-  // 1) "Kaydet ve Doğrula" / "Bağla ve Kaydet" butonu
   const btns=document.querySelectorAll('button');
   for(let i=0;i<btns.length;i++){
-    const t=(btns[i].textContent||'');
-    if(t.indexOf('Kaydet ve Doğrula')!==-1 || t.indexOf('Bağla ve Kaydet')!==-1){ hedef=btns[i]; break; }
+    const t=(btns[i].textContent||'').trim();
+    if(t.indexOf('Kaydet ve Doğrula')!==-1 || t.indexOf('Bağla ve Kaydet')!==-1 ||
+       t==='KAYDET' || t==='BAĞLAN' || t.indexOf('AKTİF')!==-1 || t.indexOf('BAĞLI')!==-1){ hedef=btns[i]; break; }
   }
-  // 2) bu uygulamanın Ayarlar çubuğu: KAYDET / AKTİF butonu (API anahtarı inputunun yanında)
-  if(!hedef){
-    for(let i=0;i<btns.length;i++){
-      const t=(btns[i].textContent||'').trim();
-      if(t==='KAYDET' || t.indexOf('AKTİF')!==-1){ hedef=btns[i]; break; }
-    }
+  const btn=document.createElement('button');
+  btn.id='zirve-ac-btn'; btn.type='button';
+  btn.innerHTML='🔑 API Anahtarları';
+  btn.style.cssText='display:inline-flex;align-items:center;gap:6px;background:linear-gradient(90deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:12px;padding:10px 16px;font-weight:900;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(79,70,229,.4);z-index:2147483000';
+  btn.onmouseenter=()=>btn.style.filter='brightness(1.08)';
+  btn.onmouseleave=()=>btn.style.filter='none';
+  btn.onclick=(e)=>{ e.preventDefault(); e.stopPropagation(); modalAc(); };
+
+  if(hedef && hedef.parentNode){
+    hedef.parentNode.insertBefore(btn, hedef.nextSibling);
+    btn.style.marginLeft='8px';
+  } else {
+    // Bağlantı çubuğu bulunamadıysa sağ üstte sabit dursun (asla kaybolmasın)
+    btn.style.position='fixed'; btn.style.top='12px'; btn.style.right='12px';
+    document.body.appendChild(btn);
   }
-  // 3) yedek: "Gemini API Anahtarı" etiketi
-  if(!hedef){
-    const ls=document.querySelectorAll('label');
-    for(let i=0;i<ls.length;i++){
-      if((ls[i].textContent||'').indexOf('Gemini API Anahtarı')!==-1){
-        let box=ls[i]; for(let up=0; up<4 && box.parentNode; up++) box=box.parentNode; hedef=box; break;
-      }
-    }
-  }
-  if(!hedef){ p.style.display='none'; return; }
-  // butonsa, butonun kapsayıcı satırının ALTINA koy (çubuğu bozmamak için)
-  let ekleNoktasi = hedef;
-  if(hedef.tagName==='BUTTON'){ let up=hedef; for(let k=0;k<3 && up.parentNode;k++) up=up.parentNode; ekleNoktasi=up; }
-  if(p.previousSibling!==ekleNoktasi && ekleNoktasi.parentNode){
-    ekleNoktasi.parentNode.insertBefore(p, ekleNoktasi.nextSibling);
-  }
-  p.style.display='block';
 }
 
 // ---------- Başlat ----------
